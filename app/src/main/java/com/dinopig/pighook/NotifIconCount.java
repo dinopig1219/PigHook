@@ -2,6 +2,7 @@ package com.dinopig.pighook;
 
 import android.util.Log;
 
+import java.lang.ref.WeakReference;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -20,31 +21,19 @@ final class NotifIconCount {
     private static final String OBSERVER_CLASS =
             "com.android.systemui.statusbar.policy.NotificationIconObserver";
 
-    private static final String FLOW_CLASS = "kotlinx.coroutines.flow.StateFlowKt";
+    private static final String LAMBDA_CLASS = OBSERVER_CLASS + "$maxIconFlow$1";
 
-    private static final String FIELD_NAME = "maxIconFlow";
+    private static final String FIELD_FLOW = "maxIconFlow";
 
-    private static final String[] TRANSFORM_METHODS = {
-            "invokeSuspend",
-            "invoke",
-    };
+    private static final String FIELD_REGION = "regionFlow";
 
-    private static final List<Entry> entries = new CopyOnWriteArrayList<>();
+    private static final String SENTINEL = "\u0000pighook";
+
+    private static final List<WeakReference<Object>> observers = new CopyOnWriteArrayList<>();
 
     private static final Set<String> hookedClasses = ConcurrentHashMap.newKeySet();
 
-    private static volatile boolean reported = false;
-
-    private static final class Entry {
-
-        final Object flow;
-        final Object original;
-
-        Entry(Object flow, Object original) {
-            this.flow = flow;
-            this.original = original;
-        }
-    }
+    private static volatile boolean discovered = false;
 
     private NotifIconCount() {
     }
@@ -61,29 +50,25 @@ final class NotifIconCount {
             return;
         }
 
-        Field field = findField(observer);
-
-        if (field == null) {
-            module.log(Log.WARN, TAG, "field not found: " + FIELD_NAME);
+        if (findField(observer, FIELD_FLOW) == null) {
+            module.log(Log.WARN, TAG, "field not found: " + FIELD_FLOW);
             return;
         }
 
-        int named = hookTransform(
-                module,
-                findClass(classLoader, OBSERVER_CLASS + "$maxIconFlow$1"),
-                features
-        );
+        int constructors = hookConstructors(module, observer, features);
 
-        replaceFlow(module, features, observer, field, flowFactory(classLoader), named == 0);
+        int hooked = hookTransform(module, findClass(classLoader, LAMBDA_CLASS), features);
+
+        module.log(Log.INFO, TAG, "notification icon count observers: " + constructors
+                + ", transform methods: " + hooked);
+
+        features.addListener(() -> refresh(module));
     }
 
-    private static void replaceFlow(
+    private static int hookConstructors(
             XposedModule module,
-            FeatureSwitches features,
             Class<?> observer,
-            Field field,
-            Method factory,
-            boolean discover
+            FeatureSwitches features
     ) {
         int hooked = 0;
 
@@ -93,12 +78,12 @@ final class NotifIconCount {
                     Object result = chain.proceed();
                     Object target = chain.getThisObject();
 
-                    if (factory != null) {
-                        apply(module, features, target, field, factory);
-                    }
+                    if (target != null) {
+                        observers.add(new WeakReference<>(target));
 
-                    if (discover) {
-                        discover(module, features, target, field);
+                        if (!discovered) {
+                            discover(module, features, target);
+                        }
                     }
 
                     return result;
@@ -110,12 +95,7 @@ final class NotifIconCount {
             }
         }
 
-        module.log(Log.INFO, TAG, "hooked " + hooked
-                + " notification icon observer constructors");
-
-        if (factory != null) {
-            features.addListener(() -> push(module, features));
-        }
+        return hooked;
     }
 
     private static int hookTransform(
@@ -157,40 +137,85 @@ final class NotifIconCount {
 
         if (hooked > 0) {
             module.log(Log.INFO, TAG, "hooked " + hooked
-                    + " maxIconFlow transform methods in " + lambda.getName());
-        } else {
-            module.log(Log.WARN, TAG, "no maxIconFlow transform methods in "
-                    + lambda.getName());
+                    + " max icon transform methods in " + lambda.getName());
+            discovered = true;
         }
 
         return hooked;
     }
 
     private static boolean isTransformMethod(Method method) {
-        if (method.getParameterTypes().length < 2) {
+        if (method.getParameterTypes().length < 1) {
             return false;
         }
 
-        for (String name : TRANSFORM_METHODS) {
-            if (name.equals(method.getName())) {
-                return true;
-            }
-        }
+        String name = method.getName();
 
-        return false;
+        return "invoke".equals(name) || "invokeSuspend".equals(name);
     }
 
-    private static void discover(
-            XposedModule module,
-            FeatureSwitches features,
-            Object target,
-            Field field
-    ) {
-        if (target == null) {
+    private static void discover(XposedModule module, FeatureSwitches features, Object target) {
+        Object flow;
+
+        try {
+            Field field = findField(target.getClass(), FIELD_FLOW);
+            field.setAccessible(true);
+            flow = field.get(target);
+        } catch (Throwable t) {
+            module.log(Log.WARN, TAG, "read " + FIELD_FLOW + " failed", t);
             return;
         }
 
+        if (flow == null) {
+            return;
+        }
+
+        for (Field field : flow.getClass().getDeclaredFields()) {
+            if (Modifier.isStatic(field.getModifiers())) {
+                continue;
+            }
+
+            if (!field.getType().getName().contains("Function")) {
+                continue;
+            }
+
+            Object transform;
+
+            try {
+                field.setAccessible(true);
+                transform = field.get(flow);
+            } catch (Throwable t) {
+                continue;
+            }
+
+            if (transform == null) {
+                continue;
+            }
+
+            hookTransform(module, transform.getClass(), features);
+        }
+    }
+
+    private static void refresh(XposedModule module) {
+        for (WeakReference<Object> reference : observers) {
+            Object target = reference.get();
+
+            if (target == null) {
+                continue;
+            }
+
+            nudge(module, target);
+        }
+    }
+
+    private static void nudge(XposedModule module, Object target) {
         try {
+            Field field = findField(target.getClass(), FIELD_REGION);
+
+            if (field == null) {
+                return;
+            }
+
             field.setAccessible(true);
 
             Object flow = field.get(target);
@@ -199,126 +224,28 @@ final class NotifIconCount {
                 return;
             }
 
-            for (Field inner : flow.getClass().getDeclaredFields()) {
-                if (Modifier.isStatic(inner.getModifiers())) {
-                    continue;
-                }
+            Method getValue = flow.getClass().getMethod("getValue");
+            Method setValue = flow.getClass().getMethod("setValue", Object.class);
 
-                if (!inner.getName().toLowerCase().contains("transform")) {
-                    continue;
-                }
+            Object current = getValue.invoke(flow);
 
-                inner.setAccessible(true);
-
-                Object transform = inner.get(flow);
-
-                if (transform == null) {
-                    continue;
-                }
-
-                hookTransform(module, transform.getClass(), features);
+            if (current == null) {
                 return;
             }
 
-            module.log(Log.WARN, TAG, "no transform field in "
-                    + flow.getClass().getName());
+            setValue.invoke(flow, SENTINEL);
+            setValue.invoke(flow, current);
         } catch (Throwable t) {
-            module.log(Log.WARN, TAG, "find maxIconFlow transform failed", t);
+            module.log(Log.WARN, TAG, "refresh " + FIELD_FLOW + " failed", t);
         }
     }
 
-    private static void apply(
-            XposedModule module,
-            FeatureSwitches features,
-            Object target,
-            Field field,
-            Method factory
-    ) {
-        if (target == null || !features.isNotifCountEnabled()) {
-            return;
-        }
-
-        try {
-            field.setAccessible(true);
-
-            Object original = field.get(target);
-            Object flow = factory.invoke(null, Integer.valueOf(features.getNotifCount()));
-
-            if (!field.getType().isInstance(flow)) {
-                return;
-            }
-
-            field.set(target, flow);
-            entries.add(new Entry(flow, valueOf(original)));
-
-            if (!reported) {
-                reported = true;
-                module.log(Log.INFO, TAG, "notification icon count set to "
-                        + features.getNotifCount());
-            }
-        } catch (Throwable t) {
-            module.log(Log.WARN, TAG, "replace " + FIELD_NAME + " failed", t);
-        }
-    }
-
-    private static void push(XposedModule module, FeatureSwitches features) {
-        boolean enabled = features.isNotifCountEnabled();
-        int count = features.getNotifCount();
-
-        for (Entry entry : entries) {
-            Object value = enabled ? Integer.valueOf(count) : entry.original;
-
-            if (value == null) {
-                continue;
-            }
-
-            try {
-                entry.flow
-                        .getClass()
-                        .getMethod("setValue", Object.class)
-                        .invoke(entry.flow, value);
-            } catch (Throwable t) {
-                module.log(Log.WARN, TAG, "update " + FIELD_NAME + " failed", t);
-            }
-        }
-    }
-
-    private static Object valueOf(Object flow) {
-        if (flow == null) {
-            return null;
-        }
-
-        try {
-            return flow.getClass().getMethod("getValue").invoke(flow);
-        } catch (Throwable ignored) {
-            return null;
-        }
-    }
-
-    private static Method flowFactory(ClassLoader classLoader) {
-        Class<?> clazz = findClass(classLoader, FLOW_CLASS);
-
-        if (clazz == null) {
-            return null;
-        }
-
-        for (Method method : clazz.getDeclaredMethods()) {
-            if ("MutableStateFlow".equals(method.getName())
-                    && method.getParameterTypes().length == 1
-                    && Modifier.isStatic(method.getModifiers())) {
-                return method;
-            }
-        }
-
-        return null;
-    }
-
-    private static Field findField(Class<?> type) {
+    private static Field findField(Class<?> type, String name) {
         for (Class<?> parent = type;
              parent != null && parent != Object.class;
              parent = parent.getSuperclass()) {
             for (Field field : parent.getDeclaredFields()) {
-                if (FIELD_NAME.equals(field.getName())) {
+                if (name.equals(field.getName())) {
                     return field;
                 }
             }
