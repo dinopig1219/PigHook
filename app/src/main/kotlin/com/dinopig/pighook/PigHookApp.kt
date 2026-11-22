@@ -48,6 +48,7 @@ import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.SliderDefaults
 import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
@@ -224,31 +225,33 @@ internal fun PigHookApp(status: ModuleStatus, service: XposedService?) {
                                     },
                                 )
 
-                                SliderPreference(
-                                    value = featureSettings.notifCountValue.toFloat(),
-                                    onValueChange = { raw ->
-                                        val count = raw.roundToInt()
+                                if (featureSettings.notifCount) {
+                                    SliderPreference(
+                                        value = featureSettings.notifCountValue.toFloat(),
+                                        onValueChange = { raw ->
+                                            val count = raw.roundToInt()
 
-                                        if (count != featureSettings.notifCountValue) {
-                                            featureSettings = featureSettings.copy(
-                                                notifCountValue = count,
+                                            if (count != featureSettings.notifCountValue) {
+                                                featureSettings = featureSettings.copy(
+                                                    notifCountValue = count,
+                                                )
+                                            }
+                                        },
+                                        onValueChangeFinished = {
+                                            FeatureSettings.setInt(
+                                                context = context,
+                                                service = service,
+                                                key = FeatureKeys.NOTIF_COUNT_VALUE,
+                                                value = featureSettings.notifCountValue,
                                             )
-                                        }
-                                    },
-                                    onValueChangeFinished = {
-                                        FeatureSettings.setInt(
-                                            context = context,
-                                            service = service,
-                                            key = FeatureKeys.NOTIF_COUNT_VALUE,
-                                            value = featureSettings.notifCountValue,
-                                        )
-                                    },
-                                    title = stringResource(R.string.feature_notif_count_value),
-                                    valueText = featureSettings.notifCountValue.toString(),
-                                    enabled = featureSettings.notifCount,
-                                    valueRange = 0f..15f,
-                                    steps = 14,
-                                )
+                                        },
+                                        title = stringResource(R.string.feature_notif_count_value),
+                                        valueText = featureSettings.notifCountValue.toString(),
+                                        valueRange = 0f..15f,
+                                        steps = 14,
+                                        hapticEffect = SliderDefaults.SliderHapticEffect.Step,
+                                    )
+                                }
                             }
                         }
                     }
