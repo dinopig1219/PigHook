@@ -5,6 +5,7 @@ import io.github.libxposed.service.XposedService
 
 internal data class FeatureSettingsState(
     val islandWhitelist: Boolean = false,
+    val mediaAction: Boolean = false,
 )
 
 internal object FeatureSettings {
@@ -41,6 +42,7 @@ internal object FeatureSettings {
 
         val state = FeatureSettingsState(
             islandWhitelist = read(FeatureKeys.ISLAND_WHITELIST),
+            mediaAction = read(FeatureKeys.MEDIA_ACTION),
         )
 
         localEditor.apply()

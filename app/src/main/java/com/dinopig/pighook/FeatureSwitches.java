@@ -11,6 +11,7 @@ final class FeatureSwitches {
     private final List<Runnable> callbacks = new CopyOnWriteArrayList<>();
 
     private volatile boolean islandWhitelist = false;
+    private volatile boolean mediaAction = false;
 
     FeatureSwitches(SharedPreferences preferences) {
         listener = (sharedPreferences, key) -> reload(sharedPreferences);
@@ -26,6 +27,10 @@ final class FeatureSwitches {
         return islandWhitelist;
     }
 
+    boolean isMediaActionEnabled() {
+        return mediaAction;
+    }
+
     void addListener(Runnable callback) {
         callbacks.add(callback);
     }
@@ -37,6 +42,11 @@ final class FeatureSwitches {
 
         islandWhitelist = preferences.getBoolean(
                 FeatureKeys.ISLAND_WHITELIST,
+                false
+        );
+
+        mediaAction = preferences.getBoolean(
+                FeatureKeys.MEDIA_ACTION,
                 false
         );
 

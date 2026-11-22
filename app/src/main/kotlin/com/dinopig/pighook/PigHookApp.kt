@@ -194,6 +194,19 @@ internal fun PigHookApp(status: ModuleStatus, service: XposedService?) {
                                     },
                                 )
 
+                                SwitchPreference(
+                                    title = stringResource(R.string.feature_media_action),
+                                    summary = stringResource(R.string.feature_media_action_summary),
+                                    checked = featureSettings.mediaAction,
+                                    onCheckedChange = { checked ->
+                                        updateFeature(
+                                            key = FeatureKeys.MEDIA_ACTION,
+                                            value = checked,
+                                        ) {
+                                            it.copy(mediaAction = checked)
+                                        }
+                                    },
+                                )
                             }
                         }
                     }

@@ -16,4 +16,6 @@
     <string name="feature_section_title">系統介面</string>
     <string name="feature_island_whitelist">解除超級島白名單</string>
     <string name="feature_island_whitelist_summary">讓所有應用的通知都能顯示在超級島上</string>
+    <string name="feature_media_action">解鎖媒體自訂按鈕</string>
+    <string name="feature_media_action_summary">清空媒體通知自訂按鈕的應用黑名單</string>
 </resources>

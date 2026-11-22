@@ -16,4 +16,6 @@
     <string name="feature_section_title">SystemUI</string>
     <string name="feature_island_whitelist">Remove HyperIsland whitelist</string>
     <string name="feature_island_whitelist_summary">Let every app show focus notifications on the HyperIsland</string>
+    <string name="feature_media_action">Unlock media custom action buttons</string>
+    <string name="feature_media_action_summary">Remove the app blacklist of the media notification custom buttons</string>
 </resources>
