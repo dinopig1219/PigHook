@@ -115,19 +115,8 @@ final class MediaAction {
 
                 try {
                     field.setAccessible(true);
-                    Object value = field.get(target);
 
-                    if (value instanceof Collection) {
-                        ((Collection<?>) value).clear();
-                        cleared++;
-                        continue;
-                    }
-
-                    if (java.util.List.class.isAssignableFrom(field.getType())) {
-                        field.set(target, new ArrayList<>());
-                        cleared++;
-                    } else if (java.util.Set.class.isAssignableFrom(field.getType())) {
-                        field.set(target, new HashSet<>());
+                    if (emptied(field, target, field.get(target))) {
                         cleared++;
                     }
                 } catch (Throwable t) {
@@ -141,5 +130,41 @@ final class MediaAction {
             module.log(Log.INFO, TAG, "cleared " + cleared
                     + " hidden custom action lists in " + target.getClass().getName());
         }
+    }
+
+    private static boolean emptied(Field field, Object target, Object value) throws Exception {
+        if (value instanceof Collection) {
+            try {
+                ((Collection<?>) value).clear();
+                return true;
+            } catch (UnsupportedOperationException ignored) {
+            }
+        }
+
+        Object empty = emptyCollection(field.getType());
+
+        if (empty == null) {
+            return false;
+        }
+
+        field.set(target, empty);
+
+        return true;
+    }
+
+    private static Object emptyCollection(Class<?> type) {
+        if (java.util.Set.class.isAssignableFrom(type)) {
+            return new HashSet<>();
+        }
+
+        if (java.util.List.class.isAssignableFrom(type)) {
+            return new ArrayList<>();
+        }
+
+        if (Collection.class.isAssignableFrom(type)) {
+            return new ArrayList<>();
+        }
+
+        return null;
     }
 }
