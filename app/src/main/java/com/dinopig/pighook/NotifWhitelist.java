@@ -48,9 +48,39 @@ final class NotifWhitelist {
     }
 
     static void install(XposedModule module, ClassLoader classLoader, FeatureSwitches features) {
+        if (isInternationalBuild(module, classLoader)) {
+            return;
+        }
+
         features.addListener(() -> apply(module, features));
         tryHook(module, classLoader, features);
         hookClassLoaderConstructors(module, features);
+    }
+
+    private static boolean isInternationalBuild(XposedModule module, ClassLoader classLoader) {
+        ClassLoader loader = classLoader != null
+                ? classLoader
+                : NotifWhitelist.class.getClassLoader();
+
+        Class<?> build = findClass("miui.os.Build", loader);
+
+        if (build == null) {
+            return false;
+        }
+
+        try {
+            Field field = build.getDeclaredField("IS_INTERNATIONAL_BUILD");
+            field.setAccessible(true);
+
+            if (field.getBoolean(null)) {
+                module.log(Log.INFO, TAG, "international build, notification whitelist skipped");
+                return true;
+            }
+        } catch (Throwable t) {
+            module.log(Log.WARN, TAG, "check international build failed", t);
+        }
+
+        return false;
     }
 
     private static void hookClassLoaderConstructors(XposedModule module, FeatureSwitches features) {
