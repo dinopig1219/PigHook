@@ -7,6 +7,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import io.github.libxposed.api.XposedModule;
@@ -22,7 +24,14 @@ final class NotifIconCount {
 
     private static final String FIELD_NAME = "maxIconFlow";
 
+    private static final String[] TRANSFORM_METHODS = {
+            "invokeSuspend",
+            "invoke",
+    };
+
     private static final List<Entry> entries = new CopyOnWriteArrayList<>();
+
+    private static final Set<String> hookedClasses = ConcurrentHashMap.newKeySet();
 
     private static volatile boolean reported = false;
 
@@ -53,17 +62,19 @@ final class NotifIconCount {
         }
 
         Field field = findField(observer);
-        Method factory = flowFactory(classLoader);
 
-        if (field != null && factory != null) {
-            replaceFlow(module, features, observer, field, factory);
+        if (field == null) {
+            module.log(Log.WARN, TAG, "field not found: " + FIELD_NAME);
             return;
         }
 
-        module.log(Log.WARN, TAG, "flow replacement unavailable, field=" + field
-                + " factory=" + factory);
+        int named = hookTransform(
+                module,
+                findClass(classLoader, OBSERVER_CLASS + "$maxIconFlow$1"),
+                features
+        );
 
-        hookLambda(module, classLoader, features);
+        replaceFlow(module, features, observer, field, flowFactory(classLoader), named == 0);
     }
 
     private static void replaceFlow(
@@ -71,7 +82,8 @@ final class NotifIconCount {
             FeatureSwitches features,
             Class<?> observer,
             Field field,
-            Method factory
+            Method factory,
+            boolean discover
     ) {
         int hooked = 0;
 
@@ -79,7 +91,16 @@ final class NotifIconCount {
             try {
                 module.hook(constructor).intercept(chain -> {
                     Object result = chain.proceed();
-                    apply(module, features, chain.getThisObject(), field, factory);
+                    Object target = chain.getThisObject();
+
+                    if (factory != null) {
+                        apply(module, features, target, field, factory);
+                    }
+
+                    if (discover) {
+                        discover(module, features, target, field);
+                    }
+
                     return result;
                 });
 
@@ -92,26 +113,28 @@ final class NotifIconCount {
         module.log(Log.INFO, TAG, "hooked " + hooked
                 + " notification icon observer constructors");
 
-        features.addListener(() -> push(module, features));
+        if (factory != null) {
+            features.addListener(() -> push(module, features));
+        }
     }
 
-    private static void hookLambda(
+    private static int hookTransform(
             XposedModule module,
-            ClassLoader classLoader,
+            Class<?> lambda,
             FeatureSwitches features
     ) {
-        Class<?> lambda = findClass(classLoader, OBSERVER_CLASS + "$maxIconFlow$1");
-
         if (lambda == null) {
-            module.log(Log.WARN, TAG, "class not found: "
-                    + OBSERVER_CLASS + "$maxIconFlow$1");
-            return;
+            return 0;
+        }
+
+        if (!hookedClasses.add(lambda.getName())) {
+            return 0;
         }
 
         int hooked = 0;
 
         for (Method method : lambda.getDeclaredMethods()) {
-            if (!"invokeSuspend".equals(method.getName())) {
+            if (!isTransformMethod(method)) {
                 continue;
             }
 
@@ -128,11 +151,80 @@ final class NotifIconCount {
 
                 hooked++;
             } catch (Throwable t) {
-                module.log(Log.WARN, TAG, "hook invokeSuspend failed", t);
+                module.log(Log.WARN, TAG, "hook " + method.getName() + " failed", t);
             }
         }
 
-        module.log(Log.INFO, TAG, "hooked " + hooked + " maxIconFlow lambdas");
+        if (hooked > 0) {
+            module.log(Log.INFO, TAG, "hooked " + hooked
+                    + " maxIconFlow transform methods in " + lambda.getName());
+        } else {
+            module.log(Log.WARN, TAG, "no maxIconFlow transform methods in "
+                    + lambda.getName());
+        }
+
+        return hooked;
+    }
+
+    private static boolean isTransformMethod(Method method) {
+        if (method.getParameterTypes().length < 2) {
+            return false;
+        }
+
+        for (String name : TRANSFORM_METHODS) {
+            if (name.equals(method.getName())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static void discover(
+            XposedModule module,
+            FeatureSwitches features,
+            Object target,
+            Field field
+    ) {
+        if (target == null) {
+            return;
+        }
+
+        try {
+            field.setAccessible(true);
+
+            Object flow = field.get(target);
+
+            if (flow == null) {
+                return;
+            }
+
+            for (Field inner : flow.getClass().getDeclaredFields()) {
+                if (Modifier.isStatic(inner.getModifiers())) {
+                    continue;
+                }
+
+                if (!inner.getName().toLowerCase().contains("transform")) {
+                    continue;
+                }
+
+                inner.setAccessible(true);
+
+                Object transform = inner.get(flow);
+
+                if (transform == null) {
+                    continue;
+                }
+
+                hookTransform(module, transform.getClass(), features);
+                return;
+            }
+
+            module.log(Log.WARN, TAG, "no transform field in "
+                    + flow.getClass().getName());
+        } catch (Throwable t) {
+            module.log(Log.WARN, TAG, "find maxIconFlow transform failed", t);
+        }
     }
 
     private static void apply(
@@ -153,8 +245,6 @@ final class NotifIconCount {
             Object flow = factory.invoke(null, Integer.valueOf(features.getNotifCount()));
 
             if (!field.getType().isInstance(flow)) {
-                module.log(Log.WARN, TAG, FIELD_NAME + " type mismatch: "
-                        + field.getType().getName());
                 return;
             }
 
