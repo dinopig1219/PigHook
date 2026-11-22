@@ -40,6 +40,7 @@ import io.github.libxposed.service.XposedService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.roundToInt
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
@@ -57,6 +58,7 @@ import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Refresh
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
+import top.yukonga.miuix.kmp.preference.SliderPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.darkColorScheme
@@ -206,6 +208,46 @@ internal fun PigHookApp(status: ModuleStatus, service: XposedService?) {
                                             it.copy(mediaAction = checked)
                                         }
                                     },
+                                )
+
+                                SwitchPreference(
+                                    title = stringResource(R.string.feature_notif_count),
+                                    summary = stringResource(R.string.feature_notif_count_summary),
+                                    checked = featureSettings.notifCount,
+                                    onCheckedChange = { checked ->
+                                        updateFeature(
+                                            key = FeatureKeys.NOTIF_COUNT,
+                                            value = checked,
+                                        ) {
+                                            it.copy(notifCount = checked)
+                                        }
+                                    },
+                                )
+
+                                SliderPreference(
+                                    value = featureSettings.notifCountValue.toFloat(),
+                                    onValueChange = { raw ->
+                                        val count = raw.roundToInt()
+
+                                        if (count != featureSettings.notifCountValue) {
+                                            featureSettings = featureSettings.copy(
+                                                notifCountValue = count,
+                                            )
+                                        }
+                                    },
+                                    onValueChangeFinished = {
+                                        FeatureSettings.setInt(
+                                            context = context,
+                                            service = service,
+                                            key = FeatureKeys.NOTIF_COUNT_VALUE,
+                                            value = featureSettings.notifCountValue,
+                                        )
+                                    },
+                                    title = stringResource(R.string.feature_notif_count_value),
+                                    valueText = featureSettings.notifCountValue.toString(),
+                                    enabled = featureSettings.notifCount,
+                                    valueRange = 0f..15f,
+                                    steps = 14,
                                 )
                             }
                         }

@@ -10,6 +10,12 @@ public final class FeatureKeys {
     public static final String MEDIA_ACTION =
             "media_action";
 
+    public static final String NOTIF_COUNT =
+            "notif_count";
+
+    public static final String NOTIF_COUNT_VALUE =
+            "notif_count_value";
+
     private FeatureKeys() {
     }
 }

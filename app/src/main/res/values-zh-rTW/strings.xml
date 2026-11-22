@@ -18,4 +18,7 @@
     <string name="feature_island_whitelist_summary">讓所有應用的通知都能顯示在超級島上</string>
     <string name="feature_media_action">解鎖媒體自訂按鈕</string>
     <string name="feature_media_action_summary">清空媒體通知自訂按鈕的應用黑名單</string>
+    <string name="feature_notif_count">自訂通知圖示顯示數量</string>
+    <string name="feature_notif_count_summary">調節狀態列的通知圖示可顯示的數量</string>
+    <string name="feature_notif_count_value">圖示數量</string>
 </resources>

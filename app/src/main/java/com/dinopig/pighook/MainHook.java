@@ -26,5 +26,6 @@ public final class MainHook extends XposedModule {
 
         IslandWhitelist.install(this, param.getClassLoader(), features);
         MediaAction.install(this, param.getClassLoader(), features);
+        NotifIconCount.install(this, param.getClassLoader(), features);
     }
 }

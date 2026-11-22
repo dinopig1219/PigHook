@@ -12,6 +12,8 @@ final class FeatureSwitches {
 
     private volatile boolean islandWhitelist = false;
     private volatile boolean mediaAction = false;
+    private volatile boolean notifCount = false;
+    private volatile int notifCountValue = 3;
 
     FeatureSwitches(SharedPreferences preferences) {
         listener = (sharedPreferences, key) -> reload(sharedPreferences);
@@ -29,6 +31,14 @@ final class FeatureSwitches {
 
     boolean isMediaActionEnabled() {
         return mediaAction;
+    }
+
+    boolean isNotifCountEnabled() {
+        return notifCount;
+    }
+
+    int getNotifCount() {
+        return notifCountValue;
     }
 
     void addListener(Runnable callback) {
@@ -49,6 +59,24 @@ final class FeatureSwitches {
                 FeatureKeys.MEDIA_ACTION,
                 false
         );
+
+        notifCount = preferences.getBoolean(
+                FeatureKeys.NOTIF_COUNT,
+                false
+        );
+
+        notifCountValue = preferences.getInt(
+                FeatureKeys.NOTIF_COUNT_VALUE,
+                3
+        );
+
+        if (notifCountValue < 0) {
+            notifCountValue = 0;
+        }
+
+        if (notifCountValue > 15) {
+            notifCountValue = 15;
+        }
 
         for (Runnable callback : callbacks) {
             try {

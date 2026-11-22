@@ -18,4 +18,7 @@
     <string name="feature_island_whitelist_summary">让所有应用的通知都能显示在超级岛上</string>
     <string name="feature_media_action">解锁媒体自定义按钮</string>
     <string name="feature_media_action_summary">清空媒体通知自定义按钮的应用黑名单</string>
+    <string name="feature_notif_count">自定义通知图标显示数量</string>
+    <string name="feature_notif_count_summary">调节状态栏的通知图标可显示的数量</string>
+    <string name="feature_notif_count_value">图标数量</string>
 </resources>

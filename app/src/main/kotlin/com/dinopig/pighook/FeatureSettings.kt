@@ -6,6 +6,8 @@ import io.github.libxposed.service.XposedService
 internal data class FeatureSettingsState(
     val islandWhitelist: Boolean = false,
     val mediaAction: Boolean = false,
+    val notifCount: Boolean = false,
+    val notifCountValue: Int = 3,
 )
 
 internal object FeatureSettings {
@@ -40,9 +42,29 @@ internal object FeatureSettings {
             return value
         }
 
+        fun readInt(key: String, default: Int): Int {
+            if (remote != null && remote.contains(key)) {
+                val value = runCatching {
+                    remote.getInt(key, default)
+                }.getOrDefault(default)
+
+                localEditor.putInt(key, value)
+                return value
+            }
+
+            val value = runCatching {
+                local.getInt(key, default)
+            }.getOrDefault(default)
+
+            remoteEditor?.putInt(key, value)
+            return value
+        }
+
         val state = FeatureSettingsState(
             islandWhitelist = read(FeatureKeys.ISLAND_WHITELIST),
             mediaAction = read(FeatureKeys.MEDIA_ACTION),
+            notifCount = read(FeatureKeys.NOTIF_COUNT),
+            notifCountValue = readInt(FeatureKeys.NOTIF_COUNT_VALUE, 3),
         )
 
         localEditor.apply()
@@ -69,6 +91,28 @@ internal object FeatureSettings {
                 ?.getRemotePreferences(FeatureKeys.GROUP)
                 ?.edit()
                 ?.putBoolean(key, value)
+                ?.apply()
+        }
+    }
+
+    fun setInt(
+        context: Context,
+        service: XposedService?,
+        key: String,
+        value: Int,
+    ) {
+        context.getSharedPreferences(
+            LOCAL_GROUP,
+            Context.MODE_PRIVATE,
+        ).edit()
+            .putInt(key, value)
+            .apply()
+
+        runCatching {
+            service
+                ?.getRemotePreferences(FeatureKeys.GROUP)
+                ?.edit()
+                ?.putInt(key, value)
                 ?.apply()
         }
     }
