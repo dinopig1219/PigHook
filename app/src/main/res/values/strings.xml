@@ -14,6 +14,8 @@
 
     <string name="xposed_api_version">API %1$d</string>
     <string name="feature_section_title">SystemUI</string>
-    <string name="feature_island_whitelist">Unlock Super Island whitelist</string>
-    <string name="feature_island_whitelist_summary">Let every app show focus notifications and media on the Super Island</string>
+    <string name="feature_island_whitelist">Remove HyperIsland whitelist</string>
+    <string name="feature_island_whitelist_summary">Let every app show focus notifications on the HyperIsland</string>
+    <string name="feature_notif_whitelist">Remove notification whitelist</string>
+    <string name="feature_notif_whitelist_summary">Let every notification show on the lock screen</string>
 </resources>

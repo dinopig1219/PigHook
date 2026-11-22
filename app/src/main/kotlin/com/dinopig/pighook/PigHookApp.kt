@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -178,19 +179,35 @@ internal fun PigHookApp(status: ModuleStatus, service: XposedService?) {
                                 .padding(horizontal = 12.dp)
                                 .padding(bottom = 12.dp),
                         ) {
-                            SwitchPreference(
-                                title = stringResource(R.string.feature_island_whitelist),
-                                summary = stringResource(R.string.feature_island_whitelist_summary),
-                                checked = featureSettings.islandWhitelist,
-                                onCheckedChange = { checked ->
-                                    updateFeature(
-                                        key = FeatureKeys.ISLAND_WHITELIST,
-                                        value = checked,
-                                    ) {
-                                        it.copy(islandWhitelist = checked)
-                                    }
-                                },
-                            )
+                            Column {
+                                SwitchPreference(
+                                    title = stringResource(R.string.feature_island_whitelist),
+                                    summary = stringResource(R.string.feature_island_whitelist_summary),
+                                    checked = featureSettings.islandWhitelist,
+                                    onCheckedChange = { checked ->
+                                        updateFeature(
+                                            key = FeatureKeys.ISLAND_WHITELIST,
+                                            value = checked,
+                                        ) {
+                                            it.copy(islandWhitelist = checked)
+                                        }
+                                    },
+                                )
+
+                                SwitchPreference(
+                                    title = stringResource(R.string.feature_notif_whitelist),
+                                    summary = stringResource(R.string.feature_notif_whitelist_summary),
+                                    checked = featureSettings.notifWhitelist,
+                                    onCheckedChange = { checked ->
+                                        updateFeature(
+                                            key = FeatureKeys.NOTIF_WHITELIST,
+                                            value = checked,
+                                        ) {
+                                            it.copy(notifWhitelist = checked)
+                                        }
+                                    },
+                                )
+                            }
                         }
                     }
                 }
