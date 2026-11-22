@@ -6,7 +6,6 @@
     <string name="status_not_activated">Not activated</string>
     <string name="status_restart_scope">Activated, restart scope required</string>
     <string name="restart_system_ui">Restart System UI</string>
-    <string name="restarting_system_ui">Restarting…</string>
     <string name="restart_system_ui_message">Restart System UI to apply changes? The screen will flicker for a moment.</string>
     <string name="root_required_title">Missing Root permission</string>
     <string name="root_required_message">Root permission required to restart System UI. Please grant permission and try again.</string>
@@ -14,7 +13,7 @@
     <string name="confirm">Confirm</string>
 
     <string name="xposed_api_version">API %1$d</string>
-    <string name="feature_section_title">Features</string>
+    <string name="feature_section_title">SystemUI</string>
     <string name="feature_island_whitelist">Unlock Super Island whitelist</string>
     <string name="feature_island_whitelist_summary">Let every app show focus notifications and media on the Super Island</string>
 </resources>

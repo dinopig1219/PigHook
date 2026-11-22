@@ -193,31 +193,6 @@ internal fun PigHookApp(status: ModuleStatus, service: XposedService?) {
                             )
                         }
                     }
-
-                    item {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp)
-                                .padding(bottom = 12.dp),
-                        ) {
-                            TextButton(
-                                text = if (restarting) {
-                                    stringResource(R.string.restarting_system_ui)
-                                } else {
-                                    stringResource(R.string.restart_system_ui)
-                                },
-                                onClick = {
-                                    showRestartDialog = true
-                                },
-                                enabled = !restarting,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 4.dp, vertical = 4.dp),
-                                colors = ButtonDefaults.textButtonColorsPrimary(),
-                            )
-                        }
-                    }
                 }
             }
 
