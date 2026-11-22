@@ -6,11 +6,12 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.Arrays;
 import java.util.Collections;
-import java.util.IdentityHashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
+import java.util.WeakHashMap;
 
 import dalvik.system.DexClassLoader;
 import dalvik.system.PathClassLoader;
@@ -20,39 +21,30 @@ final class NotifWhitelist {
 
     private static final String TAG = "PigHook";
 
-    private static final String FIELD_NAME = "USE_WHITE_LISTS";
-
-    private static final int ACC_FINAL = 0x0010;
-
-    private static final int MODIFIERS_MASK = 0xFFFF;
-
-    private static final long ACCESS_FLAGS_OFFSET = 4L;
-
     private static final String[] CLASS_NAMES = {
             "com.miui.systemui.notification.NotificationSettingsManager",
             "miui.systemui.notification.NotificationSettingsManager",
     };
 
-    private static final Map<Field, Boolean> TARGETS =
-            new LinkedHashMap<>();
+    private static final Set<String> SKIPPED = new HashSet<>(Arrays.asList(
+            "canFloat",
+            "canLights",
+            "canShowBadge",
+            "canSendSubstituteNotification",
+            "canShowFocus",
+            "canShowFocusState",
+            "canShowFocusMediaState",
+            "canCustomFocus",
+            "mediaIslandSupportMiniWindow"
+    ));
 
-    private static final Map<Field, Integer> MODIFIERS =
-            new LinkedHashMap<>();
-
-    private static final Set<Field> UNFINALIZED =
-            Collections.newSetFromMap(new IdentityHashMap<Field, Boolean>());
-
-    private static Object unsafeInstance;
-    private static Method unsafeGetInt;
-    private static Method unsafePutInt;
-    private static Field artFieldMember;
-    private static boolean unsafeResolved;
+    private static final Set<Class<?>> HOOKED =
+            Collections.synchronizedSet(Collections.newSetFromMap(new WeakHashMap<Class<?>, Boolean>()));
 
     private NotifWhitelist() {
     }
 
     static void install(XposedModule module, ClassLoader classLoader, FeatureSwitches features) {
-        features.addListener(() -> apply(module, features));
         tryHook(module, classLoader, features);
         hookClassLoaderConstructors(module, features);
     }
@@ -96,16 +88,11 @@ final class NotifWhitelist {
 
         for (String name : CLASS_NAMES) {
             Class<?> clazz = findClass(name, classLoader);
-            if (clazz == null) {
+            if (clazz == null || !HOOKED.add(clazz)) {
                 continue;
             }
 
-            Field field = findField(clazz);
-            if (field == null) {
-                continue;
-            }
-
-            register(module, field, features);
+            hookChecks(module, clazz, features);
         }
     }
 
@@ -117,156 +104,66 @@ final class NotifWhitelist {
         }
     }
 
-    private static Field findField(Class<?> clazz) {
-        try {
-            Field field = clazz.getDeclaredField(FIELD_NAME);
-            if (!Modifier.isStatic(field.getModifiers())) {
-                return null;
-            }
-            return field;
-        } catch (Throwable ignored) {
-            return null;
-        }
-    }
+    private static void hookChecks(XposedModule module, Class<?> clazz, FeatureSwitches features) {
+        int hooked = 0;
+        StringBuilder names = new StringBuilder();
 
-    private static void register(XposedModule module, Field field, FeatureSwitches features) {
-        synchronized (TARGETS) {
-            if (TARGETS.containsKey(field)) {
-                return;
+        for (Method method : clazz.getDeclaredMethods()) {
+            if (!isCheck(method)) {
+                continue;
             }
 
-            Boolean original = read(field);
-            if (original == null) {
-                module.log(Log.WARN, TAG, "cannot read " + field.getDeclaringClass().getName()
-                        + "." + FIELD_NAME);
-                return;
-            }
+            try {
+                module.hook(method).intercept(chain -> {
+                    if (features.isNotifWhitelistEnabled()) {
+                        return Boolean.TRUE;
+                    }
+                    return chain.proceed();
+                });
 
-            int modifiers = field.getModifiers();
+                hooked++;
 
-            makeWritable(field);
-            TARGETS.put(field, original);
-            MODIFIERS.put(field, modifiers);
-
-            module.log(Log.INFO, TAG, "found " + field.getDeclaringClass().getName()
-                    + "." + FIELD_NAME + " = " + original
-                    + " (modifiers " + modifiers + ")");
-        }
-
-        apply(module, features);
-    }
-
-    private static void apply(XposedModule module, FeatureSwitches features) {
-        boolean unlock = features.isNotifWhitelistEnabled();
-
-        synchronized (TARGETS) {
-            for (Map.Entry<Field, Boolean> entry : TARGETS.entrySet()) {
-                write(module, entry.getKey(), unlock ? Boolean.FALSE : entry.getValue());
-            }
-        }
-    }
-
-    private static Boolean read(Field field) {
-        try {
-            field.setAccessible(true);
-            return field.getBoolean(null);
-        } catch (Throwable ignored) {
-            return null;
-        }
-    }
-
-    private static void write(XposedModule module, Field field, boolean value) {
-        String name = field.getDeclaringClass().getName() + "." + FIELD_NAME;
-
-        if (!set(field, value)) {
-            makeWritable(field);
-
-            if (!set(field, value)) {
-                if (!clearArtFinal(module, field) || !set(field, value)) {
-                    module.log(Log.ERROR, TAG,
-                            "write " + name + " refused by the runtime");
-                    dump(module, field.getDeclaringClass());
-                    return;
+                if (names.length() < 600) {
+                    names.append(method.getName()).append(',');
                 }
+            } catch (Throwable t) {
+                module.log(Log.WARN, TAG, "hook " + method.getName() + " failed", t);
             }
         }
 
-        Boolean actual = read(field);
-
-        if (actual == null || actual != value) {
-            module.log(Log.ERROR, TAG, "write " + name + " ignored, value is still " + actual);
+        if (hooked > 0) {
+            module.log(Log.INFO, TAG, "hooked " + hooked + " checks in "
+                    + clazz.getName() + ": " + names);
+        } else {
+            module.log(Log.WARN, TAG, "no check hooked in " + clazz.getName());
+            dump(module, clazz);
         }
     }
 
-    private static boolean set(Field field, boolean value) {
-        try {
-            field.setBoolean(null, value);
-            return true;
-        } catch (Throwable ignored) {
-            return false;
-        }
-    }
+    private static boolean isCheck(Method method) {
+        Class<?> returnType = method.getReturnType();
 
-    private static void makeWritable(Field field) {
-        try {
-            field.setAccessible(true);
-        } catch (Throwable ignored) {
-        }
-
-        if (!Modifier.isFinal(field.getModifiers())) {
-            return;
-        }
-
-        try {
-            Field flags = Field.class.getDeclaredField("accessFlags");
-            flags.setAccessible(true);
-            flags.setInt(field, field.getModifiers() & ~Modifier.FINAL);
-        } catch (Throwable ignored) {
-        }
-    }
-
-    private static boolean clearArtFinal(XposedModule module, Field field) {
-        if (UNFINALIZED.contains(field)) {
-            return true;
-        }
-
-        if (!resolveUnsafe(module)) {
+        if (returnType != boolean.class && returnType != Boolean.class) {
             return false;
         }
 
-        try {
-            long pointer = artFieldMember.getLong(field);
-
-            if (pointer == 0L) {
-                module.log(Log.WARN, TAG,
-                        "no ArtField pointer for " + field.getDeclaringClass().getName());
-                return false;
-            }
-
-            Integer expected = MODIFIERS.get(field);
-            int flags = (Integer) unsafeGetInt.invoke(unsafeInstance, pointer + ACCESS_FLAGS_OFFSET);
-
-            if (expected == null || (flags & MODIFIERS_MASK) != expected.intValue()) {
-                module.log(Log.WARN, TAG, "access flags mismatch: " + flags
-                        + " in ArtField, " + expected + " in Field");
-                return false;
-            }
-
-            if ((flags & ACC_FINAL) != 0) {
-                unsafePutInt.invoke(unsafeInstance, pointer + ACCESS_FLAGS_OFFSET,
-                        flags & ~ACC_FINAL);
-
-                module.log(Log.INFO, TAG, "cleared final flag on "
-                        + field.getDeclaringClass().getName() + "." + FIELD_NAME);
-            }
-
-            UNFINALIZED.add(field);
-
-            return true;
-        } catch (Throwable t) {
-            module.log(Log.WARN, TAG, "clear final flag failed", t);
+        if (method.isSynthetic() || Modifier.isAbstract(method.getModifiers())) {
             return false;
         }
+
+        String name = method.getName();
+
+        if (SKIPPED.contains(name)) {
+            return false;
+        }
+
+        if (name.startsWith("can")) {
+            return true;
+        }
+
+        String lower = name.toLowerCase(Locale.ROOT);
+
+        return lower.contains("keyguard") || lower.contains("lockscreen");
     }
 
     private static void dump(XposedModule module, Class<?> clazz) {
@@ -275,69 +172,49 @@ final class NotifWhitelist {
         try {
             for (Method method : clazz.getDeclaredMethods()) {
                 if (builder.length() > 600) {
-                    builder.append("...");
-                    break;
+                    module.log(Log.WARN, TAG, "methods: " + builder);
+                    builder.setLength(0);
                 }
-                builder.append(method.getName()).append(',');
+
+                builder.append(method.getName()).append('(');
+
+                Class<?>[] types = method.getParameterTypes();
+
+                for (int i = 0; i < types.length; i++) {
+                    if (i > 0) {
+                        builder.append(',');
+                    }
+                    builder.append(types[i].getSimpleName());
+                }
+
+                builder.append(")->").append(method.getReturnType().getSimpleName()).append(' ');
+            }
+
+            if (builder.length() > 0) {
+                module.log(Log.WARN, TAG, "methods: " + builder);
             }
         } catch (Throwable t) {
-            builder.append("<error ").append(t).append('>');
+            module.log(Log.WARN, TAG, "dump methods failed", t);
         }
 
-        module.log(Log.WARN, TAG, "declared methods: " + builder);
-    }
+        builder.setLength(0);
 
-    private static synchronized boolean resolveUnsafe(XposedModule module) {
-        if (unsafeResolved) {
-            return unsafeInstance != null;
-        }
-
-        unsafeResolved = true;
-
-        String[] classNames = {
-                "sun.misc.Unsafe",
-                "jdk.internal.misc.Unsafe",
-        };
-
-        String[] instanceNames = {
-                "THE_ONE",
-                "theUnsafe",
-        };
-
-        for (String className : classNames) {
-            try {
-                Class<?> clazz = Class.forName(className);
-
-                Object instance = null;
-
-                for (String instanceName : instanceNames) {
-                    try {
-                        Field field = clazz.getDeclaredField(instanceName);
-                        field.setAccessible(true);
-                        instance = field.get(null);
-                        break;
-                    } catch (Throwable ignored) {
-                    }
+        try {
+            for (Field field : clazz.getDeclaredFields()) {
+                if (builder.length() > 600) {
+                    module.log(Log.WARN, TAG, "fields: " + builder);
+                    builder.setLength(0);
                 }
 
-                if (instance == null) {
-                    continue;
-                }
-
-                unsafeInstance = instance;
-                unsafeGetInt = clazz.getMethod("getInt", long.class);
-                unsafePutInt = clazz.getMethod("putInt", long.class, int.class);
-                artFieldMember = Field.class.getDeclaredField("artField");
-                artFieldMember.setAccessible(true);
-
-                return true;
-            } catch (Throwable t) {
-                module.log(Log.WARN, TAG, className + " unavailable", t);
+                builder.append(field.getName()).append('/')
+                        .append(field.getModifiers()).append(' ');
             }
+
+            if (builder.length() > 0) {
+                module.log(Log.WARN, TAG, "fields: " + builder);
+            }
+        } catch (Throwable t) {
+            module.log(Log.WARN, TAG, "dump fields failed", t);
         }
-
-        module.log(Log.WARN, TAG, "no Unsafe available, static final field stays locked");
-
-        return false;
     }
 }
