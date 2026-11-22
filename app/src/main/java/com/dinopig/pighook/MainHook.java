@@ -25,6 +25,5 @@ public final class MainHook extends XposedModule {
         FeatureSwitches features = new FeatureSwitches(preferences);
 
         IslandWhitelist.install(this, param.getClassLoader(), features);
-        NotifWhitelist.install(this, param.getClassLoader(), features);
     }
 }

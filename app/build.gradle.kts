@@ -15,7 +15,7 @@ android {
     defaultConfig {
         applicationId = "com.dinopig.pighook"
         minSdk = 33
-        targetSdk = 36
+        targetSdk = 37
 
         versionCode = ciVersionCode
         versionName = releaseTag

@@ -16,6 +16,4 @@
     <string name="feature_section_title">SystemUI</string>
     <string name="feature_island_whitelist">Remove HyperIsland whitelist</string>
     <string name="feature_island_whitelist_summary">Let every app show focus notifications on the HyperIsland</string>
-    <string name="feature_notif_whitelist">Remove notification whitelist</string>
-    <string name="feature_notif_whitelist_summary">Let every notification show on the lock screen</string>
 </resources>

@@ -11,7 +11,6 @@ final class FeatureSwitches {
     private final List<Runnable> callbacks = new CopyOnWriteArrayList<>();
 
     private volatile boolean islandWhitelist = false;
-    private volatile boolean notifWhitelist = false;
 
     FeatureSwitches(SharedPreferences preferences) {
         listener = (sharedPreferences, key) -> reload(sharedPreferences);
@@ -27,10 +26,6 @@ final class FeatureSwitches {
         return islandWhitelist;
     }
 
-    boolean isNotifWhitelistEnabled() {
-        return notifWhitelist;
-    }
-
     void addListener(Runnable callback) {
         callbacks.add(callback);
     }
@@ -42,11 +37,6 @@ final class FeatureSwitches {
 
         islandWhitelist = preferences.getBoolean(
                 FeatureKeys.ISLAND_WHITELIST,
-                false
-        );
-
-        notifWhitelist = preferences.getBoolean(
-                FeatureKeys.NOTIF_WHITELIST,
                 false
         );
 
