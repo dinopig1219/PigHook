@@ -199,6 +199,20 @@ internal fun PigHookApp(status: ModuleStatus, service: XposedService?) {
                                 )
 
                                 SwitchPreference(
+                                    title = stringResource(R.string.feature_notif_whitelist),
+                                    summary = stringResource(R.string.feature_notif_whitelist_summary),
+                                    checked = featureSettings.notifWhitelist,
+                                    onCheckedChange = { checked ->
+                                        updateFeature(
+                                            key = FeatureKeys.NOTIF_WHITELIST,
+                                            value = checked,
+                                        ) {
+                                            it.copy(notifWhitelist = checked)
+                                        }
+                                    },
+                                )
+
+                                SwitchPreference(
                                     title = stringResource(R.string.feature_media_action),
                                     summary = stringResource(R.string.feature_media_action_summary),
                                     checked = featureSettings.mediaAction,

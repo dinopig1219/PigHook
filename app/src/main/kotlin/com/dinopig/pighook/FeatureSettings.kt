@@ -5,6 +5,7 @@ import io.github.libxposed.service.XposedService
 
 internal data class FeatureSettingsState(
     val islandWhitelist: Boolean = false,
+    val notifWhitelist: Boolean = false,
     val mediaAction: Boolean = false,
     val notifCount: Boolean = false,
     val notifCountValue: Int = 3,
@@ -62,6 +63,7 @@ internal object FeatureSettings {
 
         val state = FeatureSettingsState(
             islandWhitelist = read(FeatureKeys.ISLAND_WHITELIST),
+            notifWhitelist = read(FeatureKeys.NOTIF_WHITELIST),
             mediaAction = read(FeatureKeys.MEDIA_ACTION),
             notifCount = read(FeatureKeys.NOTIF_COUNT),
             notifCountValue = readInt(FeatureKeys.NOTIF_COUNT_VALUE, 3),

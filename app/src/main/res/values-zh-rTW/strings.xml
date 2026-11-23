@@ -14,10 +14,10 @@
 
     <string name="xposed_api_version">API %1$d</string>
     <string name="feature_section_title">系統介面</string>
-    <string name="feature_island_whitelist">解除超級島白名單</string>
-    <string name="feature_island_whitelist_summary">讓所有應用的通知都能顯示在超級島上</string>
-    <string name="feature_media_action">解鎖媒體自訂按鈕</string>
-    <string name="feature_media_action_summary">清空媒體通知自訂按鈕的應用黑名單</string>
+    <string name="feature_island_whitelist">禁用超級島白名單</string>
+    <string name="feature_island_whitelist_summary">讓所有應用程式的通知都能顯示在超級島上</string>
+    <string name="feature_media_action">禁用媒體自訂按鈕黑名單</string>
+    <string name="feature_media_action_summary">讓被黑名單的媒體應用程式都能顯示自訂按鈕</string>
     <string name="feature_notif_count">自訂通知圖示顯示數量</string>
     <string name="feature_notif_count_summary">調節狀態列的通知圖示可顯示的數量</string>
     <string name="feature_notif_count_value">圖示數量</string>

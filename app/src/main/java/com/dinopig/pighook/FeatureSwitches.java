@@ -11,6 +11,7 @@ final class FeatureSwitches {
     private final List<Runnable> callbacks = new CopyOnWriteArrayList<>();
 
     private volatile boolean islandWhitelist = false;
+    private volatile boolean notifWhitelist = false;
     private volatile boolean mediaAction = false;
     private volatile boolean notifCount = false;
     private volatile int notifCountValue = 3;
@@ -27,6 +28,10 @@ final class FeatureSwitches {
 
     boolean isIslandWhitelistEnabled() {
         return islandWhitelist;
+    }
+
+    boolean isNotifWhitelistEnabled() {
+        return notifWhitelist;
     }
 
     boolean isMediaActionEnabled() {
@@ -52,6 +57,11 @@ final class FeatureSwitches {
 
         islandWhitelist = preferences.getBoolean(
                 FeatureKeys.ISLAND_WHITELIST,
+                false
+        );
+
+        notifWhitelist = preferences.getBoolean(
+                FeatureKeys.NOTIF_WHITELIST,
                 false
         );
 
