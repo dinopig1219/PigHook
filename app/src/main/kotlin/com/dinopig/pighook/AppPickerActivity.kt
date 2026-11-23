@@ -11,10 +11,8 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
@@ -37,9 +35,10 @@ import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.basic.TopAppBar
+import top.yukonga.miuix.kmp.basic.rememberTopAppBarState
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.preference.ArrowPreference
@@ -90,7 +89,8 @@ private fun AppPickerScreen(
     onPick: (String) -> Unit,
 ) {
     val context = LocalContext.current
-    val scrollBehavior = MiuixScrollBehavior()
+    val topAppBarState = rememberTopAppBarState()
+    val scrollBehavior = MiuixScrollBehavior(topAppBarState)
     var query by remember { mutableStateOf("") }
     var apps by remember { mutableStateOf<List<AppEntry>?>(null) }
 
@@ -115,78 +115,83 @@ private fun AppPickerScreen(
     }
 
     Scaffold(
+        modifier = Modifier.fillMaxSize(),
         topBar = {
-            SmallTopAppBar(
+            TopAppBar(
                 title = stringResource(R.string.pinned_add_app),
                 scrollBehavior = scrollBehavior,
+                color = MiuixTheme.colorScheme.surface,
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = MiuixIcons.Back,
                             contentDescription = stringResource(R.string.back),
-                            tint = MiuixTheme.colorScheme.onSurface,
+                            tint = MiuixTheme.colorScheme.onBackground,
                         )
                     }
                 },
             )
         },
     ) { paddingValues ->
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .overScrollVertical()
-                .nestedScroll(scrollBehavior.nestedScrollConnection),
-            contentPadding = PaddingValues(
-                top = paddingValues.calculateTopPadding() + 8.dp,
-                bottom = paddingValues.calculateBottomPadding() + 16.dp,
-            ),
+                .padding(top = paddingValues.calculateTopPadding()),
         ) {
-            item {
-                TextField(
-                    value = query,
-                    onValueChange = { query = it },
-                    label = stringResource(R.string.pinned_search_hint),
-                    singleLine = true,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp),
-                )
+            TextField(
+                value = query,
+                onValueChange = { query = it },
+                label = stringResource(R.string.pinned_search_hint),
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp)
+                    .padding(top = 8.dp, bottom = 12.dp),
+            )
 
-                Spacer(modifier = Modifier.height(12.dp))
-            }
-
-            if (shown.isEmpty()) {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 24.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = stringResource(R.string.pinned_no_apps),
-                            fontSize = 14.sp,
-                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                        )
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .overScrollVertical()
+                    .nestedScroll(scrollBehavior.nestedScrollConnection),
+                contentPadding = PaddingValues(
+                    bottom = paddingValues.calculateBottomPadding() + 16.dp,
+                ),
+            ) {
+                if (shown.isEmpty()) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 24.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = stringResource(R.string.pinned_no_apps),
+                                fontSize = 14.sp,
+                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                            )
+                        }
                     }
                 }
-            }
 
-            item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp),
-                ) {
-                    Column {
-                        shown.forEach { app ->
-                            ArrowPreference(
-                                title = app.label,
-                                summary = app.pkg,
-                                onClick = {
-                                    onPick(app.pkg)
-                                },
-                            )
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp),
+                    ) {
+                        Column {
+                            shown.forEach { app ->
+                                ArrowPreference(
+                                    title = app.label,
+                                    summary = app.pkg,
+                                    onClick = {
+                                        onPick(app.pkg)
+                                    },
+                                )
+                            }
                         }
                     }
                 }

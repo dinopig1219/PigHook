@@ -44,10 +44,11 @@ import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SmallTitle
-import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.basic.TopAppBar
+import top.yukonga.miuix.kmp.basic.rememberTopAppBarState
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
@@ -84,7 +85,8 @@ private fun PinnedAppsScreen(
 ) {
     val context = LocalContext.current
     val service = PigHook.service
-    val scrollBehavior = MiuixScrollBehavior()
+    val topAppBarState = rememberTopAppBarState()
+    val scrollBehavior = MiuixScrollBehavior(topAppBarState)
     val rules = remember(service) { mutableStateMapOf<String, Int>() }
     var pinnedEnabled by remember(service) {
         mutableStateOf(FeatureSettings.load(context, service).pinnedEnabled)
@@ -136,16 +138,18 @@ private fun PinnedAppsScreen(
     )
 
     Scaffold(
+        modifier = Modifier.fillMaxSize(),
         topBar = {
-            SmallTopAppBar(
+            TopAppBar(
                 title = stringResource(R.string.feature_pinned_notif),
                 scrollBehavior = scrollBehavior,
+                color = MiuixTheme.colorScheme.surface,
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = MiuixIcons.Back,
                             contentDescription = stringResource(R.string.back),
-                            tint = MiuixTheme.colorScheme.onSurface,
+                            tint = MiuixTheme.colorScheme.onBackground,
                         )
                     }
                 },
@@ -273,132 +277,132 @@ private fun PinnedAppsScreen(
                 }
             }
         }
-    }
 
-    OverlayDialog(
-        title = stringResource(R.string.pinned_reset),
-        summary = stringResource(R.string.pinned_reset_message),
-        show = resetting,
-        onDismissRequest = {
-            resetting = false
-        },
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+        OverlayDialog(
+            title = stringResource(R.string.pinned_reset),
+            summary = stringResource(R.string.pinned_reset_message),
+            show = resetting,
+            onDismissRequest = {
+                resetting = false
+            },
         ) {
-            TextButton(
-                text = stringResource(R.string.cancel),
-                onClick = {
-                    resetting = false
-                },
-                modifier = Modifier.weight(1f),
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                TextButton(
+                    text = stringResource(R.string.cancel),
+                    onClick = {
+                        resetting = false
+                    },
+                    modifier = Modifier.weight(1f),
+                )
 
-            Spacer(modifier = Modifier.width(16.dp))
+                Spacer(modifier = Modifier.width(16.dp))
 
-            TextButton(
-                text = stringResource(R.string.pinned_reset_confirm),
-                onClick = {
-                    resetting = false
-                    rules.clear()
-                    persist()
-                    pinnedEnabled = false
-                    FeatureSettings.set(
-                        context = context,
-                        service = service,
-                        key = FeatureKeys.PINNED_ENABLED,
-                        value = false,
-                    )
-                },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.textButtonColorsPrimary(),
-            )
-        }
-    }
-
-    val editingLabel = editing
-
-    OverlayDialog(
-        title = editingLabel?.let { appLabel(context, it) }.orEmpty(),
-        summary = stringResource(R.string.pinned_priority_hint),
-        show = editingLabel != null,
-        onDismissRequest = {
-            editing = null
-        },
-    ) {
-        TextField(
-            value = priorityText,
-            onValueChange = { priorityText = it },
-            label = stringResource(R.string.pinned_priority_label),
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Number,
-            ),
-            singleLine = true,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp),
-        )
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            TextButton(
-                text = stringResource(R.string.action_delete),
-                onClick = {
-                    if (editingLabel != null) {
-                        rules.remove(editingLabel)
+                TextButton(
+                    text = stringResource(R.string.pinned_reset_confirm),
+                    onClick = {
+                        resetting = false
+                        rules.clear()
                         persist()
-                    }
+                        pinnedEnabled = false
+                        FeatureSettings.set(
+                            context = context,
+                            service = service,
+                            key = FeatureKeys.PINNED_ENABLED,
+                            value = false,
+                        )
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.textButtonColorsPrimary(),
+                )
+            }
+        }
 
-                    editing = null
-                },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.textButtonColors(
-                    textColor = MiuixTheme.colorScheme.error,
+        val editingLabel = editing
+
+        OverlayDialog(
+            title = editingLabel?.let { appLabel(context, it) }.orEmpty(),
+            summary = stringResource(R.string.pinned_priority_hint),
+            show = editingLabel != null,
+            onDismissRequest = {
+                editing = null
+            },
+        ) {
+            TextField(
+                value = priorityText,
+                onValueChange = { priorityText = it },
+                label = stringResource(R.string.pinned_priority_label),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
                 ),
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp),
             )
 
-            Spacer(modifier = Modifier.width(16.dp))
-
-            TextButton(
-                text = stringResource(R.string.cancel),
-                onClick = {
-                    editing = null
-                },
-                modifier = Modifier.weight(1f),
-            )
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            TextButton(
-                text = stringResource(R.string.confirm),
-                onClick = {
-                    val value = priorityText.trim().toIntOrNull()
-
-                    if (value == null || value < 0) {
-                        Toast.makeText(
-                            context,
-                            context.getString(R.string.pinned_priority_invalid),
-                            Toast.LENGTH_SHORT,
-                        ).show()
-                    } else {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                TextButton(
+                    text = stringResource(R.string.action_delete),
+                    onClick = {
                         if (editingLabel != null) {
-                            rules[editingLabel] = value
+                            rules.remove(editingLabel)
                             persist()
                         }
 
                         editing = null
-                    }
-                },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.textButtonColorsPrimary(),
-            )
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.textButtonColors(
+                        textColor = MiuixTheme.colorScheme.error,
+                    ),
+                )
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                TextButton(
+                    text = stringResource(R.string.cancel),
+                    onClick = {
+                        editing = null
+                    },
+                    modifier = Modifier.weight(1f),
+                )
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                TextButton(
+                    text = stringResource(R.string.confirm),
+                    onClick = {
+                        val value = priorityText.trim().toIntOrNull()
+
+                        if (value == null || value < 0) {
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.pinned_priority_invalid),
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                        } else {
+                            if (editingLabel != null) {
+                                rules[editingLabel] = value
+                                persist()
+                            }
+
+                            editing = null
+                        }
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.textButtonColorsPrimary(),
+                )
+            }
         }
     }
 }
