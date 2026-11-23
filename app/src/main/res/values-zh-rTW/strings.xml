@@ -10,6 +10,7 @@
     <string name="root_required_title">缺少 Root 權限</string>
     <string name="root_required_message">重新啟動需要 Root 權限，請授權後再試一次。</string>
     <string name="cancel">取消</string>
+    <string name="back">返回</string>
     <string name="confirm">確定</string>
 
     <string name="xposed_api_version">API %1$d</string>
@@ -22,9 +23,6 @@
     <string name="feature_notif_count_summary">調節狀態列的通知圖示可顯示的數量</string>
     <string name="feature_notif_count_value">圖示數量</string>
 
-    <string name="feature_section_layout">通知版面與排序</string>
-    <string name="feature_notif_rerank">重新排序通知</string>
-    <string name="feature_notif_rerank_summary">按以下順序重新排列通知：媒體控制面板、系統警報、焦點通知、對話通知和其他通知</string>
     <string name="feature_pinned_notif">置頂應用程式通知</string>
     <string name="feature_pinned_notif_summary">按優先級置頂所選應用程式的普通通知；對話通知仍優先</string>
     <string name="feature_pinned_notif_on">已啟用</string>
@@ -40,6 +38,7 @@
     <string name="pinned_reset_confirm">重設</string>
     <string name="pinned_delete_message">確定要刪除 %1$s 嗎？</string>
     <string name="pinned_priority_label">優先級</string>
+    <string name="pinned_priority_value">優先級 %1$d</string>
     <string name="pinned_priority_hint">輸入非負優先級。數值越小越優先，多個應用程式可使用相同數值。</string>
     <string name="pinned_priority_invalid">優先級必須為非負整數</string>
     <string name="pinned_priority_exists">此應用程式已新增</string>

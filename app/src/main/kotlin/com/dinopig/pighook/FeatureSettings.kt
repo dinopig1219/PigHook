@@ -9,7 +9,6 @@ internal data class FeatureSettingsState(
     val mediaAction: Boolean = false,
     val notifCount: Boolean = false,
     val notifCountValue: Int = 3,
-    val notifRerank: Boolean = false,
     val pinnedEnabled: Boolean = false,
 )
 
@@ -69,7 +68,6 @@ internal object FeatureSettings {
             mediaAction = read(FeatureKeys.MEDIA_ACTION),
             notifCount = read(FeatureKeys.NOTIF_COUNT),
             notifCountValue = readInt(FeatureKeys.NOTIF_COUNT_VALUE, 3),
-            notifRerank = read(FeatureKeys.NOTIF_RERANK),
             pinnedEnabled = read(FeatureKeys.PINNED_ENABLED),
         )
 

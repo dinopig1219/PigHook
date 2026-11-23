@@ -23,6 +23,10 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".PinnedAppsActivity"
+            android:exported="false" />
+
         <activity-alias
             android:name="${applicationId}.launcher"
             android:enabled="true"

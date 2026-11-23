@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import io.github.libxposed.service.HookedTarget
@@ -14,6 +15,7 @@ class MainActivity : ComponentActivity(), PigHook.ServiceStateListener {
 
     private var moduleStatus by mutableStateOf(ModuleStatus.DISABLED)
     private var xposedService by mutableStateOf<XposedService?>(null)
+    private var resumeTick by mutableIntStateOf(0)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -22,6 +24,7 @@ class MainActivity : ComponentActivity(), PigHook.ServiceStateListener {
             PigHookApp(
                 status = moduleStatus,
                 service = xposedService,
+                resumeTick = resumeTick,
             )
         }
     }
@@ -34,6 +37,7 @@ class MainActivity : ComponentActivity(), PigHook.ServiceStateListener {
     override fun onResume() {
         super.onResume()
         xposedService = PigHook.service
+        resumeTick++
         refreshStatus(PigHook.service)
     }
 

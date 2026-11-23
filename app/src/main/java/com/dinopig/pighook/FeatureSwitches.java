@@ -19,7 +19,6 @@ final class FeatureSwitches {
     private volatile boolean mediaAction = false;
     private volatile boolean notifCount = false;
     private volatile int notifCountValue = 3;
-    private volatile boolean notifRerank = false;
     private volatile boolean pinnedEnabled = false;
     private volatile Map<String, Integer> pinnedOrder = Collections.emptyMap();
 
@@ -51,10 +50,6 @@ final class FeatureSwitches {
 
     int getNotifCount() {
         return notifCountValue;
-    }
-
-    boolean isNotifRerankEnabled() {
-        return notifRerank;
     }
 
     boolean isPinnedEnabled() {
@@ -106,11 +101,6 @@ final class FeatureSwitches {
         if (notifCountValue > 15) {
             notifCountValue = 15;
         }
-
-        notifRerank = preferences.getBoolean(
-                FeatureKeys.NOTIF_RERANK,
-                false
-        );
 
         pinnedEnabled = preferences.getBoolean(
                 FeatureKeys.PINNED_ENABLED,

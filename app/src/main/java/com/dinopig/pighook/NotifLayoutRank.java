@@ -89,7 +89,8 @@ final class NotifLayoutRank {
                 module.hook(method).intercept(chain -> {
                     Object result = chain.proceed();
 
-                    if (!features.isNotifRerankEnabled()
+                    if (!features.isPinnedEnabled()
+                            || features.getPinnedOrder().isEmpty()
                             || !Boolean.TRUE.equals(result)
                             || chain.getArgs().isEmpty()) {
                         return result;
@@ -155,7 +156,7 @@ final class NotifLayoutRank {
 
             try {
                 module.hook(method).intercept(chain -> {
-                    if (!features.isNotifRerankEnabled()) {
+                    if (!features.isPinnedEnabled() || features.getPinnedOrder().isEmpty()) {
                         return chain.proceed();
                     }
 

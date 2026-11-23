@@ -19,9 +19,6 @@ public final class FeatureKeys {
     public static final String NOTIF_COUNT_VALUE =
             "notif_count_value";
 
-    public static final String NOTIF_RERANK =
-            "notif_rerank";
-
     public static final String PINNED_ENABLED =
             "pinned_enabled";
 

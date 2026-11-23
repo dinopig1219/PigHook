@@ -1,5 +1,6 @@
 package com.dinopig.pighook
 
+import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -68,34 +69,24 @@ import top.yukonga.miuix.kmp.theme.darkColorScheme
 import top.yukonga.miuix.kmp.theme.lightColorScheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 
-private enum class PigHookPage {
-    MAIN,
-    PINNED,
-}
-
 @Composable
-internal fun PigHookApp(status: ModuleStatus, service: XposedService?) {
-    var page by remember { mutableStateOf(PigHookPage.MAIN) }
-
-    when (page) {
-        PigHookPage.MAIN -> PigHookMain(
-            status = status,
-            service = service,
-            onOpenPinnedApps = { page = PigHookPage.PINNED },
-        )
-
-        PigHookPage.PINNED -> PinnedAppsPage(
-            service = service,
-            onBack = { page = PigHookPage.MAIN },
-        )
-    }
+internal fun PigHookApp(
+    status: ModuleStatus,
+    service: XposedService?,
+    resumeTick: Int,
+) {
+    PigHookMain(
+        status = status,
+        service = service,
+        resumeTick = resumeTick,
+    )
 }
 
 @Composable
 private fun PigHookMain(
     status: ModuleStatus,
     service: XposedService?,
-    onOpenPinnedApps: () -> Unit,
+    resumeTick: Int,
 ) {
     val topAppBarState = rememberTopAppBarState()
     val scrollBehavior = MiuixScrollBehavior(topAppBarState)
@@ -105,7 +96,7 @@ private fun PigHookMain(
     var showRootRequiredDialog by remember { mutableStateOf(false) }
     var restarting by remember { mutableStateOf(false) }
     val context = LocalContext.current
-    var featureSettings by remember(service) {
+    var featureSettings by remember(service, resumeTick) {
         mutableStateOf(FeatureSettings.load(context, service))
     }
 
@@ -297,56 +288,29 @@ private fun PigHookMain(
                                         hapticEffect = SliderDefaults.SliderHapticEffect.Step,
                                     )
                                 }
-                            }
-                        }
-                    }
 
-                    item {
-                        SmallTitle(text = stringResource(R.string.feature_section_layout))
-                    }
-
-                    item {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp)
-                                .padding(bottom = 12.dp),
-                        ) {
-                            Column {
-                                SwitchPreference(
-                                    title = stringResource(R.string.feature_notif_rerank),
-                                    summary = stringResource(R.string.feature_notif_rerank_summary),
-                                    checked = featureSettings.notifRerank,
-                                    onCheckedChange = { checked ->
-                                        updateFeature(
-                                            key = FeatureKeys.NOTIF_RERANK,
-                                            value = checked,
-                                        ) {
-                                            it.copy(notifRerank = checked)
-                                        }
+                                ArrowPreference(
+                                    title = stringResource(R.string.feature_pinned_notif),
+                                    summary = stringResource(R.string.feature_pinned_notif_summary),
+                                    endActions = {
+                                        Text(
+                                            text = stringResource(
+                                                if (featureSettings.pinnedEnabled) {
+                                                    R.string.feature_pinned_notif_on
+                                                } else {
+                                                    R.string.feature_pinned_notif_off
+                                                },
+                                            ),
+                                            fontSize = 15.sp,
+                                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                                        )
+                                    },
+                                    onClick = {
+                                        context.startActivity(
+                                            Intent(context, PinnedAppsActivity::class.java),
+                                        )
                                     },
                                 )
-
-                                AnimatedVisibility(visible = featureSettings.notifRerank) {
-                                    ArrowPreference(
-                                        title = stringResource(R.string.feature_pinned_notif),
-                                        summary = stringResource(R.string.feature_pinned_notif_summary),
-                                        endActions = {
-                                            Text(
-                                                text = stringResource(
-                                                    if (featureSettings.pinnedEnabled) {
-                                                        R.string.feature_pinned_notif_on
-                                                    } else {
-                                                        R.string.feature_pinned_notif_off
-                                                    },
-                                                ),
-                                                fontSize = 15.sp,
-                                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                                            )
-                                        },
-                                        onClick = onOpenPinnedApps,
-                                    )
-                                }
                             }
                         }
                     }
