@@ -27,6 +27,10 @@
             android:name=".PinnedAppsActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".AppPickerActivity"
+            android:exported="false" />
+
         <activity-alias
             android:name="${applicationId}.launcher"
             android:enabled="true"

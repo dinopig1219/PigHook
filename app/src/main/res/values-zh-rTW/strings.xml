@@ -43,6 +43,7 @@
     <string name="pinned_priority_invalid">優先級必須為非負整數</string>
     <string name="pinned_priority_exists">此應用程式已新增</string>
     <string name="pinned_search_hint">搜尋應用程式名稱或套件名稱</string>
+    <string name="pinned_no_apps">沒有符合的應用程式</string>
     <string name="feature_notif_whitelist">禁用通知白名單</string>
     <string name="feature_notif_whitelist_summary">讓所有通知都能顯示在鎖屏上</string>
 </resources>

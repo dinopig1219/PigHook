@@ -1,23 +1,22 @@
 package com.dinopig.pighook
 
-import android.content.Context
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -29,7 +28,6 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
@@ -41,7 +39,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
-import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
@@ -81,11 +78,6 @@ class PinnedAppsActivity : ComponentActivity() {
     }
 }
 
-private data class AppEntry(
-    val label: String,
-    val pkg: String,
-)
-
 @Composable
 private fun PinnedAppsScreen(
     onBack: () -> Unit,
@@ -97,10 +89,38 @@ private fun PinnedAppsScreen(
     var pinnedEnabled by remember(service) {
         mutableStateOf(FeatureSettings.load(context, service).pinnedEnabled)
     }
-    var picker by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf<String?>(null) }
     var priorityText by remember { mutableStateOf("") }
     var resetting by remember { mutableStateOf(false) }
+
+    fun persist() {
+        FeatureSettings.savePinnedRules(context, service, rules.toMap())
+    }
+
+    val pickerLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        val pkg = result.data?.getStringExtra(AppPickerActivity.EXTRA_PACKAGE)
+
+        if (result.resultCode != Activity.RESULT_OK || pkg == null) {
+            return@rememberLauncherForActivityResult
+        }
+
+        if (rules.containsKey(pkg)) {
+            Toast.makeText(
+                context,
+                context.getString(R.string.pinned_priority_exists),
+                Toast.LENGTH_SHORT,
+            ).show()
+        } else {
+            val priority = (rules.values.maxOrNull() ?: -1) + 1
+
+            rules[pkg] = priority
+            persist()
+            priorityText = priority.toString()
+            editing = pkg
+        }
+    }
 
     LaunchedEffect(service) {
         val loaded = withContext(Dispatchers.IO) {
@@ -109,37 +129,6 @@ private fun PinnedAppsScreen(
 
         rules.clear()
         rules.putAll(loaded)
-    }
-
-    if (picker) {
-        AppPickerScreen(
-            onBack = {
-                picker = false
-            },
-            onPick = { app ->
-                picker = false
-
-                if (rules.containsKey(app.pkg)) {
-                    Toast.makeText(
-                        context,
-                        context.getString(R.string.pinned_priority_exists),
-                        Toast.LENGTH_SHORT,
-                    ).show()
-                } else {
-                    val priority = (rules.values.maxOrNull() ?: -1) + 1
-
-                    rules[app.pkg] = priority
-                    FeatureSettings.savePinnedRules(context, service, rules.toMap())
-                    priorityText = priority.toString()
-                    editing = app.pkg
-                }
-            },
-        )
-        return
-    }
-
-    fun persist() {
-        FeatureSettings.savePinnedRules(context, service, rules.toMap())
     }
 
     val sorted = rules.entries.sortedWith(
@@ -174,22 +163,15 @@ private fun PinnedAppsScreen(
             ),
         ) {
             item {
-                Card(
+                Text(
+                    text = stringResource(R.string.pinned_hint),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 12.dp)
+                        .padding(horizontal = 16.dp)
                         .padding(bottom = 12.dp),
-                    colors = CardDefaults.defaultColors(
-                        color = MiuixTheme.colorScheme.tertiaryContainer,
-                        contentColor = MiuixTheme.colorScheme.onTertiaryContainer,
-                    ),
-                ) {
-                    Text(
-                        text = stringResource(R.string.pinned_hint),
-                        modifier = Modifier.padding(16.dp),
-                        fontSize = 14.sp,
-                    )
-                }
+                    fontSize = 14.sp,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                )
             }
 
             item {
@@ -225,7 +207,9 @@ private fun PinnedAppsScreen(
                     ArrowPreference(
                         title = stringResource(R.string.pinned_add_app),
                         onClick = {
-                            picker = true
+                            pickerLauncher.launch(
+                                Intent(context, AppPickerActivity::class.java),
+                            )
                         },
                     )
                 }
@@ -262,6 +246,7 @@ private fun PinnedAppsScreen(
                                         priorityText = entry.value.toString()
                                         editing = entry.key
                                     },
+                                    holdDownState = editing == entry.key,
                                 )
                             }
                         }
@@ -270,18 +255,22 @@ private fun PinnedAppsScreen(
             }
 
             item {
-                TextButton(
-                    text = stringResource(R.string.pinned_reset),
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp)
+                        .padding(bottom = 12.dp),
                     onClick = {
                         resetting = true
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp),
-                    colors = ButtonDefaults.textButtonColors(
-                        textColor = MiuixTheme.colorScheme.error,
-                    ),
-                )
+                ) {
+                    Text(
+                        text = stringResource(R.string.pinned_reset),
+                        modifier = Modifier.fillMaxWidth(),
+                        fontSize = 16.sp,
+                        color = MiuixTheme.colorScheme.error,
+                    )
+                }
             }
         }
     }
@@ -297,7 +286,7 @@ private fun PinnedAppsScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 16.dp),
+                .padding(top = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             TextButton(
@@ -325,9 +314,7 @@ private fun PinnedAppsScreen(
                     )
                 },
                 modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.textButtonColors(
-                    textColor = MiuixTheme.colorScheme.error,
-                ),
+                colors = ButtonDefaults.textButtonColorsPrimary(),
             )
         }
     }
@@ -342,214 +329,76 @@ private fun PinnedAppsScreen(
             editing = null
         },
     ) {
-        Column(
+        TextField(
+            value = priorityText,
+            onValueChange = { priorityText = it },
+            label = stringResource(R.string.pinned_priority_label),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Number,
+            ),
+            singleLine = true,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 12.dp),
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            TextField(
-                value = priorityText,
-                onValueChange = { priorityText = it },
-                label = stringResource(R.string.pinned_priority_label),
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Number,
+            TextButton(
+                text = stringResource(R.string.action_delete),
+                onClick = {
+                    if (editingLabel != null) {
+                        rules.remove(editingLabel)
+                        persist()
+                    }
+
+                    editing = null
+                },
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.textButtonColors(
+                    textColor = MiuixTheme.colorScheme.error,
                 ),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
             )
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                TextButton(
-                    text = stringResource(R.string.action_delete),
-                    onClick = {
+            Spacer(modifier = Modifier.width(16.dp))
+
+            TextButton(
+                text = stringResource(R.string.cancel),
+                onClick = {
+                    editing = null
+                },
+                modifier = Modifier.weight(1f),
+            )
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            TextButton(
+                text = stringResource(R.string.confirm),
+                onClick = {
+                    val value = priorityText.trim().toIntOrNull()
+
+                    if (value == null || value < 0) {
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.pinned_priority_invalid),
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                    } else {
                         if (editingLabel != null) {
-                            rules.remove(editingLabel)
+                            rules[editingLabel] = value
                             persist()
                         }
 
                         editing = null
-                    },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.textButtonColors(
-                        textColor = MiuixTheme.colorScheme.error,
-                    ),
-                )
-
-                TextButton(
-                    text = stringResource(R.string.cancel),
-                    onClick = {
-                        editing = null
-                    },
-                    modifier = Modifier.weight(1f),
-                )
-
-                TextButton(
-                    text = stringResource(R.string.confirm),
-                    onClick = {
-                        val value = priorityText.trim().toIntOrNull()
-
-                        if (value == null || value < 0) {
-                            Toast.makeText(
-                                context,
-                                context.getString(R.string.pinned_priority_invalid),
-                                Toast.LENGTH_SHORT,
-                            ).show()
-                        } else {
-                            if (editingLabel != null) {
-                                rules[editingLabel] = value
-                                persist()
-                            }
-
-                            editing = null
-                        }
-                    },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.textButtonColorsPrimary(),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun AppPickerScreen(
-    onBack: () -> Unit,
-    onPick: (AppEntry) -> Unit,
-) {
-    val context = LocalContext.current
-    val scrollBehavior = MiuixScrollBehavior()
-    var query by remember { mutableStateOf("") }
-    var apps by remember { mutableStateOf<List<AppEntry>?>(null) }
-
-    LaunchedEffect(Unit) {
-        apps = withContext(Dispatchers.IO) {
-            loadApps(context)
-        }
-    }
-
-    val shown = remember(apps, query) {
-        val keyword = query.trim().lowercase()
-        val source = apps.orEmpty()
-
-        if (keyword.isEmpty()) {
-            source
-        } else {
-            source.filter { app ->
-                app.label.lowercase().contains(keyword) ||
-                    app.pkg.lowercase().contains(keyword)
-            }
-        }
-    }
-
-    BackHandler(onBack = onBack)
-
-    Scaffold(
-        topBar = {
-            SmallTopAppBar(
-                title = stringResource(R.string.pinned_add_app),
-                scrollBehavior = scrollBehavior,
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = MiuixIcons.Back,
-                            contentDescription = stringResource(R.string.back),
-                            tint = MiuixTheme.colorScheme.onSurface,
-                        )
                     }
                 },
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.textButtonColorsPrimary(),
             )
-        },
-    ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .overScrollVertical()
-                .nestedScroll(scrollBehavior.nestedScrollConnection),
-            contentPadding = PaddingValues(
-                top = paddingValues.calculateTopPadding() + 8.dp,
-                bottom = paddingValues.calculateBottomPadding() + 16.dp,
-            ),
-        ) {
-            item {
-                TextField(
-                    value = query,
-                    onValueChange = { query = it },
-                    label = stringResource(R.string.pinned_search_hint),
-                    singleLine = true,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp),
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-            }
-
-            if (shown.isEmpty()) {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 24.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = stringResource(R.string.pinned_add_app),
-                            fontSize = 15.sp,
-                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                        )
-                    }
-                }
-            }
-
-            item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp),
-                ) {
-                    Column {
-                        shown.forEach { app ->
-                            ArrowPreference(
-                                title = app.label,
-                                summary = app.pkg,
-                                onClick = {
-                                    onPick(app)
-                                },
-                            )
-                        }
-                    }
-                }
-            }
         }
     }
-}
-
-private fun appLabel(context: Context, pkg: String): String = runCatching {
-    val manager = context.packageManager
-    val info = manager.getApplicationInfo(pkg, 0)
-
-    manager.getApplicationLabel(info).toString()
-}.getOrDefault(pkg)
-
-private fun loadApps(context: Context): List<AppEntry> {
-    val manager = context.packageManager
-    val launcher = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
-
-    return manager.queryIntentActivities(launcher, 0)
-        .mapNotNull { it.activityInfo?.applicationInfo }
-        .distinctBy { info -> info.packageName }
-        .map { info ->
-            AppEntry(
-                label = runCatching {
-                    manager.getApplicationLabel(info).toString()
-                }.getOrDefault(info.packageName),
-                pkg = info.packageName,
-            )
-        }
-        .sortedBy { app -> app.label.lowercase() }
 }
