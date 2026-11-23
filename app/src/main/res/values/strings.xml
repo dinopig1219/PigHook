@@ -16,11 +16,34 @@
     <string name="feature_section_title">SystemUI</string>
     <string name="feature_island_whitelist">Remove HyperIsland whitelist</string>
     <string name="feature_island_whitelist_summary">Let every app show focus notifications on the HyperIsland</string>
-    <string name="feature_notif_whitelist">Remove notification whitelist</string>
-    <string name="feature_notif_whitelist_summary">Let all notifications show on the lock screen</string>
     <string name="feature_media_action">Remove media custom action buttons whitelist</string>
     <string name="feature_media_action_summary">Enable custom buttons to appear in blacklisted media apps</string>
     <string name="feature_notif_count">Custom notification icon count</string>
     <string name="feature_notif_count_summary">Adjust how many notification icons can be shown in the status bar</string>
     <string name="feature_notif_count_value">Icon count</string>
+
+    <string name="feature_section_layout">Notification layout and ranking</string>
+    <string name="feature_notif_rerank">Reorder notifications</string>
+    <string name="feature_notif_rerank_summary">Order notifications as media panel, system alerts, focus notifications, conversations and others</string>
+    <string name="feature_pinned_notif">Pinned app notifications</string>
+    <string name="feature_pinned_notif_summary">Pin normal notifications of the selected apps by priority; conversations still come first</string>
+    <string name="feature_pinned_notif_on">Enabled</string>
+    <string name="feature_pinned_notif_off">Disabled</string>
+    <string name="pinned_hint">Lower values come first, 0 is the highest priority. Apps with the same priority keep the system order. Only normal notifications are affected; conversations still come first.</string>
+    <string name="pinned_enable">Enable pinned app notifications</string>
+    <string name="pinned_add_app">Add app</string>
+    <string name="pinned_added_apps">Added apps</string>
+    <string name="pinned_rule_summary">%1$s · Priority %2$d</string>
+    <string name="action_delete">Delete</string>
+    <string name="pinned_reset">Reset to default</string>
+    <string name="pinned_reset_message">Clear all pinned apps and turn off pinned app notifications?</string>
+    <string name="pinned_reset_confirm">Reset</string>
+    <string name="pinned_delete_message">Remove %1$s from pinned apps?</string>
+    <string name="pinned_priority_label">Priority</string>
+    <string name="pinned_priority_hint">Enter a non-negative priority. Lower values come first; several apps may share the same value.</string>
+    <string name="pinned_priority_invalid">Priority must be a non-negative integer</string>
+    <string name="pinned_priority_exists">This app is already added</string>
+    <string name="pinned_search_hint">Search by app name or package</string>
+    <string name="feature_notif_whitelist">Remove notification whitelist</string>
+    <string name="feature_notif_whitelist_summary">Let all notifications show on the lock screen</string>
 </resources>

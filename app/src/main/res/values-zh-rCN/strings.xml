@@ -16,11 +16,34 @@
     <string name="feature_section_title">系统界面</string>
     <string name="feature_island_whitelist">禁用超级岛白名单</string>
     <string name="feature_island_whitelist_summary">使所有应用的通知都能显示在超级岛上</string>
-    <string name="feature_notif_whitelist">禁用通知白名单</string>
-    <string name="feature_notif_whitelist_summary">使所有通知都能显示在锁屏上</string>
     <string name="feature_media_action">禁用媒体自定义按钮黑名单</string>
     <string name="feature_media_action_summary">使被黑名单的媒体应用都能显示自定义按钮</string>
     <string name="feature_notif_count">自定义通知图标显示数量</string>
     <string name="feature_notif_count_summary">调节状态栏的通知图标可显示的数量</string>
     <string name="feature_notif_count_value">图标数量</string>
+
+    <string name="feature_section_layout">通知布局与排序</string>
+    <string name="feature_notif_rerank">重新排序通知</string>
+    <string name="feature_notif_rerank_summary">按以下顺序重新排列通知：媒体控制面板、系统警报、焦点通知、对话通知和其他通知</string>
+    <string name="feature_pinned_notif">置顶应用通知</string>
+    <string name="feature_pinned_notif_summary">按优先级置顶所选应用的普通通知；对话通知仍优先</string>
+    <string name="feature_pinned_notif_on">已启用</string>
+    <string name="feature_pinned_notif_off">未启用</string>
+    <string name="pinned_hint">数值越小越靠前，0 为最高优先级；相同优先级的应用仍按系统原有规则排序。仅影响普通通知，对话通知仍优先。</string>
+    <string name="pinned_enable">启用置顶应用通知</string>
+    <string name="pinned_add_app">添加应用</string>
+    <string name="pinned_added_apps">已添加的应用</string>
+    <string name="pinned_rule_summary">%1$s · 优先级 %2$d</string>
+    <string name="action_delete">删除</string>
+    <string name="pinned_reset">重置为默认值</string>
+    <string name="pinned_reset_message">将清空所有置顶应用并关闭“启用置顶应用通知”。</string>
+    <string name="pinned_reset_confirm">重置</string>
+    <string name="pinned_delete_message">确定要删除 %1$s 吗？</string>
+    <string name="pinned_priority_label">优先级</string>
+    <string name="pinned_priority_hint">输入非负优先级。数值越小越优先，多个应用可使用相同数值。</string>
+    <string name="pinned_priority_invalid">优先级必须为非负整数</string>
+    <string name="pinned_priority_exists">该应用已添加</string>
+    <string name="pinned_search_hint">搜索应用名或包名</string>
+    <string name="feature_notif_whitelist">禁用通知白名单</string>
+    <string name="feature_notif_whitelist_summary">使所有通知都能显示在锁屏上</string>
 </resources>

@@ -28,5 +28,6 @@ public final class MainHook extends XposedModule {
         NotifWhitelist.install(this, param.getClassLoader(), features);
         MediaAction.install(this, param.getClassLoader(), features);
         NotifIconCount.install(this, param.getClassLoader(), features);
+        NotifLayoutRank.install(this, param.getClassLoader(), features);
     }
 }

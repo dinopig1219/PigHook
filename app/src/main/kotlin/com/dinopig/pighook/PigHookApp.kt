@@ -60,6 +60,7 @@ import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Refresh
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
+import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.SliderPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -67,8 +68,35 @@ import top.yukonga.miuix.kmp.theme.darkColorScheme
 import top.yukonga.miuix.kmp.theme.lightColorScheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 
+private enum class PigHookPage {
+    MAIN,
+    PINNED,
+}
+
 @Composable
 internal fun PigHookApp(status: ModuleStatus, service: XposedService?) {
+    var page by remember { mutableStateOf(PigHookPage.MAIN) }
+
+    when (page) {
+        PigHookPage.MAIN -> PigHookMain(
+            status = status,
+            service = service,
+            onOpenPinnedApps = { page = PigHookPage.PINNED },
+        )
+
+        PigHookPage.PINNED -> PinnedAppsPage(
+            service = service,
+            onBack = { page = PigHookPage.MAIN },
+        )
+    }
+}
+
+@Composable
+private fun PigHookMain(
+    status: ModuleStatus,
+    service: XposedService?,
+    onOpenPinnedApps: () -> Unit,
+) {
     val topAppBarState = rememberTopAppBarState()
     val scrollBehavior = MiuixScrollBehavior(topAppBarState)
     val darkTheme = isSystemInDarkTheme()
@@ -267,6 +295,56 @@ internal fun PigHookApp(status: ModuleStatus, service: XposedService?) {
                                         valueRange = 0f..15f,
                                         steps = 14,
                                         hapticEffect = SliderDefaults.SliderHapticEffect.Step,
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    item {
+                        SmallTitle(text = stringResource(R.string.feature_section_layout))
+                    }
+
+                    item {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp)
+                                .padding(bottom = 12.dp),
+                        ) {
+                            Column {
+                                SwitchPreference(
+                                    title = stringResource(R.string.feature_notif_rerank),
+                                    summary = stringResource(R.string.feature_notif_rerank_summary),
+                                    checked = featureSettings.notifRerank,
+                                    onCheckedChange = { checked ->
+                                        updateFeature(
+                                            key = FeatureKeys.NOTIF_RERANK,
+                                            value = checked,
+                                        ) {
+                                            it.copy(notifRerank = checked)
+                                        }
+                                    },
+                                )
+
+                                AnimatedVisibility(visible = featureSettings.notifRerank) {
+                                    ArrowPreference(
+                                        title = stringResource(R.string.feature_pinned_notif),
+                                        summary = stringResource(R.string.feature_pinned_notif_summary),
+                                        endActions = {
+                                            Text(
+                                                text = stringResource(
+                                                    if (featureSettings.pinnedEnabled) {
+                                                        R.string.feature_pinned_notif_on
+                                                    } else {
+                                                        R.string.feature_pinned_notif_off
+                                                    },
+                                                ),
+                                                fontSize = 15.sp,
+                                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                                            )
+                                        },
+                                        onClick = onOpenPinnedApps,
                                     )
                                 }
                             }
