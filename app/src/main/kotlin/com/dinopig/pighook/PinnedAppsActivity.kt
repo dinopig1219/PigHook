@@ -9,6 +9,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -32,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -138,6 +140,8 @@ private fun PinnedAppsScreen(
         compareBy<Map.Entry<String, Int>> { it.value }.thenBy { it.key },
     )
 
+    val accentAlpha = if (isSystemInDarkTheme()) 0.2f else 0.1f
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
@@ -174,14 +178,16 @@ private fun PinnedAppsScreen(
                         .padding(horizontal = 12.dp)
                         .padding(bottom = 12.dp),
                     colors = CardDefaults.defaultColors(
-                        color = MiuixTheme.colorScheme.tertiaryContainer,
-                        contentColor = MiuixTheme.colorScheme.onTertiaryContainer,
+                        color = MiuixTheme.colorScheme.primary.copy(alpha = accentAlpha),
+                        contentColor = MiuixTheme.colorScheme.primary,
                     ),
                 ) {
                     Text(
                         text = stringResource(R.string.pinned_hint),
                         modifier = Modifier.padding(16.dp),
                         fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MiuixTheme.colorScheme.primary,
                     )
                 }
             }
@@ -267,18 +273,28 @@ private fun PinnedAppsScreen(
             }
 
             item {
-                TextButton(
-                    text = stringResource(R.string.pinned_reset),
-                    onClick = {
-                        resetting = true
-                    },
+                Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 12.dp),
-                    colors = ButtonDefaults.textButtonColors(
-                        textColor = MiuixTheme.colorScheme.error,
+                    colors = CardDefaults.defaultColors(
+                        color = MiuixTheme.colorScheme.error.copy(alpha = accentAlpha),
+                        contentColor = MiuixTheme.colorScheme.error,
                     ),
-                )
+                ) {
+                    Text(
+                        text = stringResource(R.string.pinned_reset),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                resetting = true
+                            }
+                            .padding(16.dp),
+                        fontSize = MiuixTheme.textStyles.headline1.fontSize,
+                        fontWeight = FontWeight.Medium,
+                        color = MiuixTheme.colorScheme.error,
+                    )
+                }
             }
         }
 
