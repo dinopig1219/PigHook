@@ -16,6 +16,8 @@
     <string name="feature_section_title">系统界面</string>
     <string name="feature_island_whitelist">禁用超级岛白名单</string>
     <string name="feature_island_whitelist_summary">使所有应用的通知都能显示在超级岛上</string>
+    <string name="feature_notif_whitelist">禁用通知白名单</string>
+    <string name="feature_notif_whitelist_summary">使所有通知都能显示在锁屏上</string>
     <string name="feature_media_action">禁用媒体自定义按钮黑名单</string>
     <string name="feature_media_action_summary">使被黑名单的媒体应用都能显示自定义按钮</string>
     <string name="feature_notif_count">自定义通知图标显示数量</string>
