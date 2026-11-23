@@ -27,15 +27,6 @@ final class NotifWhitelist {
             "miui.systemui.notification.NotificationSettingsManager",
     };
 
-    private static final String[] GATE_METHODS = {
-            "canFloat",
-            "canLights",
-            "canShowBadge",
-            "canShowOnKeyguard",
-            "canSound",
-            "canVibrate",
-    };
-
     private static final int ACC_FINAL = 0x0010;
 
     private static final int MODIFIERS_MASK = 0xFFFF;
@@ -51,17 +42,13 @@ final class NotifWhitelist {
     private static final Set<Field> UNFINALIZED =
             Collections.newSetFromMap(new IdentityHashMap<Field, Boolean>());
 
-    private static final Set<Class<?>> CLASSES =
-            Collections.newSetFromMap(new IdentityHashMap<Class<?>, Boolean>());
-
-    private static final Set<Class<?>> GATES =
-            Collections.newSetFromMap(new IdentityHashMap<Class<?>, Boolean>());
-
     private static Object unsafeInstance;
     private static Method unsafeGetInt;
     private static Method unsafePutInt;
     private static Field artFieldMember;
+    private static Method artPointerGetter;
     private static boolean unsafeResolved;
+    private static boolean hiddenApiExempted;
 
     private static boolean applied;
     private static boolean appliedState;
@@ -70,9 +57,34 @@ final class NotifWhitelist {
     }
 
     static void install(XposedModule module, ClassLoader classLoader, FeatureSwitches features) {
+        exemptHiddenApi(module);
         features.addListener(() -> apply(module, features));
         tryHook(module, classLoader, features);
         hookClassLoaderConstructors(module, features);
+    }
+
+    private static synchronized void exemptHiddenApi(XposedModule module) {
+        if (hiddenApiExempted) {
+            return;
+        }
+
+        hiddenApiExempted = true;
+
+        try {
+            Class<?> vmRuntime = Class.forName("dalvik.system.VMRuntime");
+            Method getRuntime = vmRuntime.getDeclaredMethod("getRuntime");
+            getRuntime.setAccessible(true);
+            Object runtime = getRuntime.invoke(null);
+            Method setExemptions = vmRuntime.getDeclaredMethod(
+                    "setHiddenApiExemptions",
+                    String[].class
+            );
+            setExemptions.setAccessible(true);
+            setExemptions.invoke(runtime, (Object) new String[]{"L"});
+            module.log(Log.INFO, TAG, "hidden api exemptions applied");
+        } catch (Throwable t) {
+            module.log(Log.WARN, TAG, "hidden api exemption failed", t);
+        }
     }
 
     private static void hookClassLoaderConstructors(XposedModule module, FeatureSwitches features) {
@@ -123,7 +135,7 @@ final class NotifWhitelist {
                 continue;
             }
 
-            register(module, clazz, field, features);
+            register(module, field, features);
         }
     }
 
@@ -147,12 +159,7 @@ final class NotifWhitelist {
         }
     }
 
-    private static void register(
-            XposedModule module,
-            Class<?> clazz,
-            Field field,
-            FeatureSwitches features
-    ) {
+    private static void register(XposedModule module, Field field, FeatureSwitches features) {
         synchronized (TARGETS) {
             if (TARGETS.containsKey(field)) {
                 return;
@@ -160,21 +167,18 @@ final class NotifWhitelist {
 
             Boolean original = read(field);
             if (original == null) {
-                module.log(Log.WARN, TAG, "cannot read " + clazz.getName()
-                        + "." + FIELD_NAME);
+                module.log(Log.WARN, TAG, "cannot read "
+                        + field.getDeclaringClass().getName() + "." + FIELD_NAME);
                 return;
             }
 
-            int modifiers = field.getModifiers();
-
             makeWritable(field);
             TARGETS.put(field, original);
-            MODIFIERS.put(field, modifiers);
-            CLASSES.add(clazz);
+            MODIFIERS.put(field, field.getModifiers());
 
-            module.log(Log.INFO, TAG, "found " + clazz.getName()
+            module.log(Log.INFO, TAG, "found " + field.getDeclaringClass().getName()
                     + "." + FIELD_NAME + " = " + original
-                    + " (modifiers " + modifiers + ")");
+                    + " (modifiers " + field.getModifiers() + ")");
         }
 
         apply(module, features);
@@ -182,7 +186,6 @@ final class NotifWhitelist {
 
     private static void apply(XposedModule module, FeatureSwitches features) {
         boolean unlock = features.isNotifWhitelistEnabled();
-        boolean failed = false;
 
         synchronized (TARGETS) {
             if (applied && appliedState == unlock) {
@@ -190,76 +193,12 @@ final class NotifWhitelist {
             }
 
             for (Map.Entry<Field, Boolean> entry : TARGETS.entrySet()) {
-                if (!write(module, entry.getKey(), unlock ? Boolean.FALSE : entry.getValue())) {
-                    failed = failed || unlock;
-                }
+                write(module, entry.getKey(), unlock ? Boolean.FALSE : entry.getValue());
             }
 
             applied = true;
             appliedState = unlock;
         }
-
-        if (!failed) {
-            return;
-        }
-
-        module.log(Log.WARN, TAG, FIELD_NAME
-                + " is locked, falling back to the per check hooks: "
-                + String.join(",", GATE_METHODS));
-
-        for (Class<?> clazz : CLASSES) {
-            hookGates(module, clazz, features);
-        }
-    }
-
-    private static void hookGates(
-            XposedModule module,
-            Class<?> clazz,
-            FeatureSwitches features
-    ) {
-        if (!GATES.add(clazz)) {
-            return;
-        }
-
-        int hooked = 0;
-
-        for (Method method : clazz.getDeclaredMethods()) {
-            String name = method.getName();
-            boolean wanted = false;
-
-            for (String gate : GATE_METHODS) {
-                if (gate.equals(name)) {
-                    wanted = true;
-                    break;
-                }
-            }
-
-            if (!wanted) {
-                continue;
-            }
-
-            Class<?> returnType = method.getReturnType();
-            if (returnType != boolean.class && returnType != Boolean.class) {
-                continue;
-            }
-
-            try {
-                module.hook(method).intercept(chain -> {
-                    if (features.isNotifWhitelistEnabled()) {
-                        return Boolean.TRUE;
-                    }
-                    return chain.proceed();
-                });
-
-                hooked++;
-            } catch (Throwable t) {
-                module.log(Log.WARN, TAG, "hook " + clazz.getSimpleName() + "." + name
-                        + " failed", t);
-            }
-        }
-
-        module.log(Log.INFO, TAG, "hooked " + hooked + " notification whitelist checks in "
-                + clazz.getName());
     }
 
     private static Boolean read(Field field) {
@@ -279,8 +218,7 @@ final class NotifWhitelist {
 
             if (!set(field, value)) {
                 if (!clearArtFinal(module, field) || !set(field, value)) {
-                    module.log(Log.ERROR, TAG, "write " + name
-                            + " refused by the runtime");
+                    module.log(Log.ERROR, TAG, "write " + name + " refused by the runtime");
                     return false;
                 }
             }
@@ -335,7 +273,7 @@ final class NotifWhitelist {
         }
 
         try {
-            long pointer = artFieldMember.getLong(field);
+            long pointer = readArtPointer(module, field);
 
             if (pointer == 0L) {
                 module.log(Log.WARN, TAG,
@@ -409,8 +347,6 @@ final class NotifWhitelist {
                 unsafeInstance = instance;
                 unsafeGetInt = clazz.getMethod("getInt", long.class);
                 unsafePutInt = clazz.getMethod("putInt", long.class, int.class);
-                artFieldMember = Field.class.getDeclaredField("artField");
-                artFieldMember.setAccessible(true);
 
                 return true;
             } catch (Throwable t) {
@@ -421,5 +357,51 @@ final class NotifWhitelist {
         module.log(Log.WARN, TAG, "no Unsafe available, static final field stays locked");
 
         return false;
+    }
+
+    private static Field resolveArtFieldMember(XposedModule module) {
+        if (artFieldMember != null) {
+            return artFieldMember;
+        }
+
+        String[] names = {
+                "artField",
+                "artFieldPtr",
+        };
+
+        for (String name : names) {
+            try {
+                Field field = Field.class.getDeclaredField(name);
+                field.setAccessible(true);
+                artFieldMember = field;
+                module.log(Log.INFO, TAG, "ArtField pointer member: " + name);
+                return artFieldMember;
+            } catch (Throwable ignored) {
+            }
+        }
+
+        try {
+            Method getArtField = Field.class.getDeclaredMethod("getArtField");
+            getArtField.setAccessible(true);
+            artFieldMember = null;
+            artPointerGetter = getArtField;
+            module.log(Log.INFO, TAG, "ArtField pointer via Field.getArtField()");
+        } catch (Throwable t) {
+            module.log(Log.WARN, TAG, "no ArtField pointer access", t);
+        }
+
+        return artFieldMember;
+    }
+
+    private static long readArtPointer(XposedModule module, Field field) throws Exception {
+        if (resolveArtFieldMember(module) != null) {
+            return artFieldMember.getLong(field);
+        }
+
+        if (artPointerGetter != null) {
+            return (Long) artPointerGetter.invoke(field);
+        }
+
+        return 0L;
     }
 }
