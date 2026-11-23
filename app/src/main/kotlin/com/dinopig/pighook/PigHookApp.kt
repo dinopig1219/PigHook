@@ -1,10 +1,6 @@
 package com.dinopig.pighook
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -232,8 +228,6 @@ internal fun PigHookApp(status: ModuleStatus, service: XposedService?) {
 
                                 AnimatedVisibility(
                                     visible = featureSettings.notifCount,
-                                    enter = expandVertically() + fadeIn(),
-                                    exit = shrinkVertically() + fadeOut(),
                                 ) {
                                     SliderPreference(
                                         value = featureSettings.notifCountValue.toFloat(),
