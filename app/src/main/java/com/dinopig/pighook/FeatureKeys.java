@@ -13,6 +13,9 @@ public final class FeatureKeys {
     public static final String MEDIA_ACTION =
             "media_action";
 
+    public static final String SUPPRESS_FOLD =
+            "suppress_fold";
+
     public static final String NOTIF_COUNT =
             "notif_count";
 

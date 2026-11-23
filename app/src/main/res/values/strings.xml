@@ -46,4 +46,7 @@
     <string name="pinned_no_apps">No matching apps</string>
     <string name="feature_notif_whitelist">Remove notification whitelist</string>
     <string name="feature_notif_whitelist_summary">Let all notifications show on the lock screen</string>
+    <string name="feature_suppress_fold">Disable notification folding</string>
+    <string name="feature_suppress_fold_summary">Stop the system from collapsing notifications into “More notifications”</string>
+    <string name="hide_launcher_icon">Hide launcher icon</string>
 </resources>

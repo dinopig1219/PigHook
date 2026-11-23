@@ -93,6 +93,9 @@ private fun PigHookMain(
     var showRootRequiredDialog by remember { mutableStateOf(false) }
     var restarting by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    var launcherIconHidden by remember {
+        mutableStateOf(LauncherIconSettings.isHidden(context))
+    }
     var featureSettings by remember(service, resumeTick) {
         mutableStateOf(FeatureSettings.load(context, service))
     }
@@ -204,6 +207,20 @@ private fun PigHookMain(
                                 )
 
                                 SwitchPreference(
+                                    title = stringResource(R.string.feature_suppress_fold),
+                                    summary = stringResource(R.string.feature_suppress_fold_summary),
+                                    checked = featureSettings.suppressFold,
+                                    onCheckedChange = { checked ->
+                                        updateFeature(
+                                            key = FeatureKeys.SUPPRESS_FOLD,
+                                            value = checked,
+                                        ) {
+                                            it.copy(suppressFold = checked)
+                                        }
+                                    },
+                                )
+
+                                SwitchPreference(
                                     title = stringResource(R.string.feature_media_action),
                                     summary = stringResource(R.string.feature_media_action_summary),
                                     checked = featureSettings.mediaAction,
@@ -284,6 +301,27 @@ private fun PigHookMain(
                                     },
                                 )
                             }
+                        }
+                    }
+
+                    item {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp)
+                                .padding(bottom = 12.dp),
+                        ) {
+                            SwitchPreference(
+                                title = stringResource(R.string.hide_launcher_icon),
+                                checked = launcherIconHidden,
+                                onCheckedChange = { hidden ->
+                                    LauncherIconSettings.setHidden(
+                                        context = context,
+                                        hidden = hidden,
+                                    )
+                                    launcherIconHidden = hidden
+                                },
+                            )
                         }
                     }
                 }

@@ -46,4 +46,7 @@
     <string name="pinned_no_apps">没有匹配的应用</string>
     <string name="feature_notif_whitelist">禁用通知白名单</string>
     <string name="feature_notif_whitelist_summary">使所有通知都能显示在锁屏上</string>
+    <string name="feature_suppress_fold">禁用折叠通知</string>
+    <string name="feature_suppress_fold_summary">阻止系统将通知收纳进“更多通知”</string>
+    <string name="hide_launcher_icon">隐藏桌面图标</string>
 </resources>
