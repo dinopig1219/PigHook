@@ -118,7 +118,7 @@ private fun PinnedAppsScreen(
                 Toast.LENGTH_SHORT,
             ).show()
         } else {
-            val priority = (rules.values.maxOrNull() ?: -1) + 1
+            val priority = 0
 
             rules[pkg] = priority
             persist()
