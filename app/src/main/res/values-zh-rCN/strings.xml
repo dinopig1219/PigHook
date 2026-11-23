@@ -34,7 +34,7 @@
     <string name="pinned_rule_summary">%1$s · 优先级 %2$d</string>
     <string name="action_delete">删除</string>
     <string name="pinned_reset">重置为默认值</string>
-    <string name="pinned_reset_message">将清空所有置顶应用并关闭“启用置顶应用通知”。</string>
+    <string name="pinned_reset_message">将清空所有已添加的置顶应用。</string>
     <string name="pinned_reset_confirm">重置</string>
     <string name="pinned_delete_message">确定要删除 %1$s 吗？</string>
     <string name="pinned_priority_label">优先级</string>

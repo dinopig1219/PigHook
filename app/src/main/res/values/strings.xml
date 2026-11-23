@@ -34,7 +34,7 @@
     <string name="pinned_rule_summary">%1$s · Priority %2$d</string>
     <string name="action_delete">Delete</string>
     <string name="pinned_reset">Reset to default</string>
-    <string name="pinned_reset_message">Clear all pinned apps and turn off pinned app notifications?</string>
+    <string name="pinned_reset_message">Clear all pinned apps?</string>
     <string name="pinned_reset_confirm">Reset</string>
     <string name="pinned_delete_message">Remove %1$s from pinned apps?</string>
     <string name="pinned_priority_label">Priority</string>
