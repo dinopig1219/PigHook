@@ -39,6 +39,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
@@ -167,15 +168,22 @@ private fun PinnedAppsScreen(
             ),
         ) {
             item {
-                Text(
-                    text = stringResource(R.string.pinned_hint),
+                Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
+                        .padding(horizontal = 12.dp)
                         .padding(bottom = 12.dp),
-                    fontSize = 14.sp,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                )
+                    colors = CardDefaults.defaultColors(
+                        color = MiuixTheme.colorScheme.tertiaryContainer,
+                        contentColor = MiuixTheme.colorScheme.onTertiaryContainer,
+                    ),
+                ) {
+                    Text(
+                        text = stringResource(R.string.pinned_hint),
+                        modifier = Modifier.padding(16.dp),
+                        fontSize = 14.sp,
+                    )
+                }
             }
 
             item {
@@ -259,22 +267,18 @@ private fun PinnedAppsScreen(
             }
 
             item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp)
-                        .padding(bottom = 12.dp),
+                TextButton(
+                    text = stringResource(R.string.pinned_reset),
                     onClick = {
                         resetting = true
                     },
-                ) {
-                    Text(
-                        text = stringResource(R.string.pinned_reset),
-                        modifier = Modifier.fillMaxWidth(),
-                        fontSize = 16.sp,
-                        color = MiuixTheme.colorScheme.error,
-                    )
-                }
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp),
+                    colors = ButtonDefaults.textButtonColors(
+                        textColor = MiuixTheme.colorScheme.error,
+                    ),
+                )
             }
         }
 
@@ -308,13 +312,6 @@ private fun PinnedAppsScreen(
                         resetting = false
                         rules.clear()
                         persist()
-                        pinnedEnabled = false
-                        FeatureSettings.set(
-                            context = context,
-                            service = service,
-                            key = FeatureKeys.PINNED_ENABLED,
-                            value = false,
-                        )
                     },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.textButtonColorsPrimary(),
@@ -345,40 +342,12 @@ private fun PinnedAppsScreen(
                     .padding(top = 12.dp),
             )
 
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                TextButton(
-                    text = stringResource(R.string.action_delete),
-                    onClick = {
-                        if (editingLabel != null) {
-                            rules.remove(editingLabel)
-                            persist()
-                        }
-
-                        editing = null
-                    },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.textButtonColors(
-                        textColor = MiuixTheme.colorScheme.error,
-                    ),
-                )
-
-                Spacer(modifier = Modifier.width(16.dp))
-
-                TextButton(
-                    text = stringResource(R.string.cancel),
-                    onClick = {
-                        editing = null
-                    },
-                    modifier = Modifier.weight(1f),
-                )
-
-                Spacer(modifier = Modifier.width(16.dp))
-
                 TextButton(
                     text = stringResource(R.string.confirm),
                     onClick = {
@@ -399,8 +368,32 @@ private fun PinnedAppsScreen(
                             editing = null
                         }
                     },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.textButtonColorsPrimary(),
+                )
+
+                TextButton(
+                    text = stringResource(R.string.cancel),
+                    onClick = {
+                        editing = null
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                TextButton(
+                    text = stringResource(R.string.action_delete),
+                    onClick = {
+                        if (editingLabel != null) {
+                            rules.remove(editingLabel)
+                            persist()
+                        }
+
+                        editing = null
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.textButtonColors(
+                        textColor = MiuixTheme.colorScheme.error,
+                    ),
                 )
             }
         }
